@@ -1,0 +1,32 @@
+---
+description: Valruna 剑桥学术系统开发规范
+alwaysApply: true
+---
+
+# Valruna Cambridge Academic System Rules
+
+## 技术与架构基线
+- 使用 `Next.js 14+ App Router` 与 `TypeScript`。
+- 优先使用服务端组件；客户端组件仅保留交互必需逻辑。
+- 仅使用函数组件与 React Hooks。
+- 所有函数声明显式返回类型，确保类型安全与可维护性。
+- 避免冗余状态；可由 props/数据推导的状态不得重复存储。
+- 所有图表必须使用 `Recharts`。
+
+## 剑桥业务硬规则（必须满足）
+- 支持级别固定为：`Starters`、`Movers`、`Flyers`、`KET`、`PET`、`FCE`。
+- 成绩录入必须原子化：
+  - 阅读：`R_P1` 到 `R_P7`（按级别约束可用题段）。
+  - 听力：`L_P1` 到 `L_P5`。
+- `Starters` / `Movers` / `Flyers`：
+  - 将原始总得分率换算为 `1-5` 个盾牌，并以图标形式展示。
+- `KET` / `PET` / `FCE`：
+  - 使用查表逻辑，将原始总分映射为 `Cambridge English Scale Score`。
+
+## 文案与输出规范
+- 所有面向用户的 UI 文案、诊断反馈、分析结论必须使用专业、严谨的中文。
+- 禁止混用口语化或随意化表达；术语应保持教学评估语境一致。
+
+## 实施建议
+- 为考试级别、原子分项、换算结果建立强类型（如联合类型与映射类型）。
+- 将“YLE 盾牌换算”与“MSE 查表换算”封装为独立可测试模块。
