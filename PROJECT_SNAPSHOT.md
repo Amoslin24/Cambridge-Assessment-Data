@@ -1,6 +1,6 @@
 # Cambridge Dashboard 项目快照
 
-更新时间：2026-04-18
+更新时间：2026-04-20
 
 ## 1) 当前状态（可直接续接）
 
@@ -136,8 +136,8 @@
 
 ### P3 交付物（收口）
 1. 老师 3 分钟上手文档（已完成：`TEACHER_QUICK_START.md`）
-2. 演示数据包（标准样例 + 异常样例）
-3. 发布前检查清单（build/lint/关键流程回归）
+2. 演示数据包（已完成：`public/templates/cambridge-import-sample.csv` + `public/templates/cambridge-import-sample-anomalies.csv`）
+3. 发布前检查清单（已完成：`RELEASE_CHECKLIST.md`）
 
 ## 5) 关键文件索引
 
@@ -162,7 +162,9 @@
 - `public/templates/cambridge-import-template.csv`：英文模板
 - `public/templates/cambridge-import-template-zh.csv`：中文模板
 - `public/templates/cambridge-import-sample.csv`：示例数据
+- `public/templates/cambridge-import-sample-anomalies.csv`：异常示例数据
 - `public/templates/cambridge-import-guide.md`：字段规范与填写说明
+- `RELEASE_CHECKLIST.md`：发布前检查项（构建/规则/关键流程回归）
 
 ## 6) 建议验证命令
 

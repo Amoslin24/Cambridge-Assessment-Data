@@ -170,29 +170,29 @@ export default function AnalysisPage(): JSX.Element {
   }, [filteredRecords]);
 
   const convertedTotalDistribution = useMemo(() => {
-    return buildConvertedTotalDistribution(distributionSourceRecords);
-  }, [distributionSourceRecords]);
+    return buildConvertedTotalDistribution(distributionSourceRecords, locale);
+  }, [distributionSourceRecords, locale]);
 
-  const distributionByLevel = useMemo(() => buildDistributionsPerLevel(filteredRecords), [filteredRecords]);
+  const distributionByLevel = useMemo(() => buildDistributionsPerLevel(filteredRecords, locale), [filteredRecords, locale]);
 
   const classPartMeansByContext = useMemo(() => {
     if (selectedLevel === 'ALL') {
       return distributionByLevel.map((row) => ({
         level: row.level,
         studentCount: row.latestPerStudent.length,
-        blocks: buildClassPartMeanBlocks(row.latestPerStudent),
+        blocks: buildClassPartMeanBlocks(row.latestPerStudent, locale),
       }));
     }
     return [
       {
         level: selectedLevel,
         studentCount: distributionSourceRecords.length,
-        blocks: buildClassPartMeanBlocks(distributionSourceRecords),
+        blocks: buildClassPartMeanBlocks(distributionSourceRecords, locale),
       },
     ];
-  }, [selectedLevel, distributionSourceRecords, distributionByLevel]);
+  }, [selectedLevel, distributionSourceRecords, distributionByLevel, locale]);
 
-  const classMacro = useMemo(() => buildClassMacroAnalytics(filteredRecords), [filteredRecords]);
+  const classMacro = useMemo(() => buildClassMacroAnalytics(filteredRecords, locale), [filteredRecords, locale]);
 
   const latestSkillBars = useMemo(() => {
     if (!latestRecord) {
@@ -262,6 +262,7 @@ export default function AnalysisPage(): JSX.Element {
       partThresholds,
       minPartsFallback,
       SKILL_LIBRARY_MAP,
+      locale,
     );
     return {
       record: latestRecord,
@@ -269,11 +270,11 @@ export default function AnalysisPage(): JSX.Element {
       weakSkills,
       attentionSkills,
       partThresholds,
-      progress: buildProgressMetrics(filteredRecords),
+      progress: buildProgressMetrics(filteredRecords, locale),
       radarData,
       suggestion,
     };
-  }, [latestRecord, filteredRecords]);
+  }, [latestRecord, filteredRecords, locale]);
 
   function sanitizePortraitFileSegment(raw: string): string {
     return raw.replace(/[/\\?%*:|"<>]/g, '_').trim() || 'export';
@@ -605,6 +606,7 @@ export default function AnalysisPage(): JSX.Element {
               {filteredRecords.length > 0 && (
                 <>
                   <AnalysisClassOverviewPanels
+                    locale={locale}
                     classMacro={classMacro}
                     selectedLevel={selectedLevel}
                     distributionByLevel={distributionByLevel}
@@ -614,6 +616,7 @@ export default function AnalysisPage(): JSX.Element {
                   />
 
                   <AnalysisStudentPortraitPanel
+                    locale={locale}
                     selectedStudent={selectedStudent}
                     studentProfile={studentProfile}
                     portraitExporting={portraitExporting}
@@ -623,6 +626,7 @@ export default function AnalysisPage(): JSX.Element {
                   />
 
                   <AnalysisPersonalComparePanels
+                    locale={locale}
                     trendData={trendData}
                     latestRecord={latestRecord}
                     latestSkillBars={latestSkillBars}

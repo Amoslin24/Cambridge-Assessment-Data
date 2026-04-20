@@ -3,6 +3,7 @@ import {
   buildConvertedTotalDistribution,
   pickLatestRecordPerStudent,
   type ConvertedTotalDistribution,
+  type UiLocale,
 } from '@/lib/convertedTotalDistribution';
 
 const LEVEL_ORDER: CambridgeExamRecord['level'][] = [
@@ -30,8 +31,15 @@ export interface DistributionByLevelRow {
   distribution: ConvertedTotalDistribution;
 }
 
+function tr(locale: UiLocale, zhText: string, enText: string): string {
+  return locale === 'zh' ? zhText : enText;
+}
+
 /** 在「全部级别」时按考试级别拆分：各级别内每位学生取最近一次考试，再分别做总分分布。 */
-export function buildDistributionsPerLevel(filteredRecords: CambridgeExamRecord[]): DistributionByLevelRow[] {
+export function buildDistributionsPerLevel(
+  filteredRecords: CambridgeExamRecord[],
+  locale: UiLocale = 'zh',
+): DistributionByLevelRow[] {
   const levels = sortLevels(Array.from(new Set(filteredRecords.map((r) => r.level))));
   return levels
     .map((level) => {
@@ -40,7 +48,7 @@ export function buildDistributionsPerLevel(filteredRecords: CambridgeExamRecord[
       return {
         level,
         latestPerStudent,
-        distribution: buildConvertedTotalDistribution(latestPerStudent),
+        distribution: buildConvertedTotalDistribution(latestPerStudent, locale),
       };
     })
     .filter((row) => row.latestPerStudent.length > 0);
@@ -79,7 +87,10 @@ function meanPartScores(
 }
 
 /** 基于「最近一次」样本，计算班级在各题段上的原始分均值（按题段满分动态折算）。 */
-export function buildClassPartMeanBlocks(latestPerStudent: CambridgeExamRecord[]): ClassPartMeanBlock[] {
+export function buildClassPartMeanBlocks(
+  latestPerStudent: CambridgeExamRecord[],
+  locale: UiLocale = 'zh',
+): ClassPartMeanBlock[] {
   if (latestPerStudent.length === 0) {
     return [];
   }
@@ -91,7 +102,7 @@ export function buildClassPartMeanBlocks(latestPerStudent: CambridgeExamRecord[]
     return [
       {
         skillKey: 'R&W',
-        title: '阅读与写作（Reading 题段）',
+        title: tr(locale, '阅读与写作（Reading 题段）', 'Reading & Writing (Reading parts)'),
         data: meanPartScores(
           latestPerStudent,
           (record, part) => Number(record.reading[part as keyof typeof record.reading] ?? 0),
@@ -101,7 +112,7 @@ export function buildClassPartMeanBlocks(latestPerStudent: CambridgeExamRecord[]
       },
       {
         skillKey: 'Listening',
-        title: '听力题段',
+        title: tr(locale, '听力题段', 'Listening parts'),
         data: meanPartScores(
           latestPerStudent,
           (record, part) => Number(record.listening[part as keyof typeof record.listening] ?? 0),
@@ -119,7 +130,7 @@ export function buildClassPartMeanBlocks(latestPerStudent: CambridgeExamRecord[]
   return [
     {
       skillKey: 'Reading',
-      title: '阅读题段',
+      title: tr(locale, '阅读题段', 'Reading parts'),
       data: meanPartScores(
         latestPerStudent,
         (record, part) => Number(record.reading[part as keyof typeof record.reading] ?? 0),
@@ -129,7 +140,7 @@ export function buildClassPartMeanBlocks(latestPerStudent: CambridgeExamRecord[]
     },
     {
       skillKey: 'Writing',
-      title: '写作题段',
+      title: tr(locale, '写作题段', 'Writing parts'),
       data: meanPartScores(
         latestPerStudent,
         (record, part) => Number(record.writing[part as keyof typeof record.writing] ?? 0),
@@ -139,7 +150,7 @@ export function buildClassPartMeanBlocks(latestPerStudent: CambridgeExamRecord[]
     },
     {
       skillKey: 'Listening',
-      title: '听力题段',
+      title: tr(locale, '听力题段', 'Listening parts'),
       data: meanPartScores(
         latestPerStudent,
         (record, part) => Number(record.listening[part as keyof typeof record.listening] ?? 0),

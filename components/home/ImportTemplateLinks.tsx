@@ -29,6 +29,12 @@ export function ImportTemplateLinks(props: ImportTemplateLinksProps): JSX.Elemen
         {locale === 'zh' ? '下载示例数据（CSV）' : 'Download sample data (CSV)'}
       </a>
       <a
+        href="/templates/cambridge-import-sample-anomalies.csv"
+        className="text-blue-700 font-medium hover:text-blue-900 underline underline-offset-2"
+      >
+        {locale === 'zh' ? '下载异常样例（CSV）' : 'Download anomaly sample (CSV)'}
+      </a>
+      <a
         href="/templates/cambridge-import-guide.md"
         className="text-blue-700 font-medium hover:text-blue-900 underline underline-offset-2"
       >

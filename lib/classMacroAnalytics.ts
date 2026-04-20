@@ -1,5 +1,6 @@
 import { extractConvertedTotal, pickLatestRecordPerStudent } from '@/lib/convertedTotalDistribution';
 import type { CambridgeExamRecord } from '@/lib/cambridgeEngine';
+import type { UiLocale } from '@/lib/convertedTotalDistribution';
 
 export type ClassMacroMode = 'YLE' | 'MSE' | 'MIXED' | 'EMPTY';
 
@@ -36,22 +37,31 @@ export interface ClassMacroAnalytics {
   notes: string[];
 }
 
-const YLE_TIER_ORDER: string[] = [
-  '待加强（总盾 0–5）',
-  '巩固段（总盾 6–7）',
-  '稳定良好（总盾 8–9）',
-  '高水平（总盾 10）',
-];
+function tr(locale: UiLocale, zhText: string, enText: string): string {
+  return locale === 'zh' ? zhText : enText;
+}
 
-const MSE_TIER_ORDER: string[] = [
-  '待加强（量表分值＜120）',
-  '达标发展（120–139）',
-  '中等（140–149）',
-  '良好（150–159）',
-  '优秀（≥160）',
-];
+function getYleTierOrder(locale: UiLocale): string[] {
+  return [
+    tr(locale, '待加强（总盾 0–5）', 'Needs support (total shields 0-5)'),
+    tr(locale, '巩固段（总盾 6–7）', 'Consolidating (total shields 6-7)'),
+    tr(locale, '稳定良好（总盾 8–9）', 'Stable good (total shields 8-9)'),
+    tr(locale, '高水平（总盾 10）', 'High performance (total shields 10)'),
+  ];
+}
 
-function yleTierLabel(total: number): string {
+function getMseTierOrder(locale: UiLocale): string[] {
+  return [
+    tr(locale, '待加强（量表分值＜120）', 'Needs support (scale < 120)'),
+    tr(locale, '达标发展（120–139）', 'Developing (120-139)'),
+    tr(locale, '中等（140–149）', 'Intermediate (140-149)'),
+    tr(locale, '良好（150–159）', 'Good (150-159)'),
+    tr(locale, '优秀（≥160）', 'Excellent (>=160)'),
+  ];
+}
+
+function yleTierLabel(total: number, locale: UiLocale): string {
+  const YLE_TIER_ORDER = getYleTierOrder(locale);
   const v = Math.round(total);
   if (v <= 5) {
     return YLE_TIER_ORDER[0]!;
@@ -65,7 +75,8 @@ function yleTierLabel(total: number): string {
   return YLE_TIER_ORDER[3]!;
 }
 
-function mseTierLabel(score: number): string {
+function mseTierLabel(score: number, locale: UiLocale): string {
+  const MSE_TIER_ORDER = getMseTierOrder(locale);
   if (score < 120) {
     return MSE_TIER_ORDER[0]!;
   }
@@ -93,13 +104,13 @@ function median(values: number[]): number | null {
   return (sorted[mid - 1]! + sorted[mid]!) / 2;
 }
 
-function buildStratificationRows(latestRecords: CambridgeExamRecord[], mode: 'YLE' | 'MSE'): StratificationRow[] {
-  const order = mode === 'YLE' ? YLE_TIER_ORDER : MSE_TIER_ORDER;
+function buildStratificationRows(latestRecords: CambridgeExamRecord[], mode: 'YLE' | 'MSE', locale: UiLocale): StratificationRow[] {
+  const order = mode === 'YLE' ? getYleTierOrder(locale) : getMseTierOrder(locale);
   const counts = new Map<string, number>();
   order.forEach((tier) => counts.set(tier, 0));
   latestRecords.forEach((record) => {
     const v = extractConvertedTotal(record);
-    const label = mode === 'YLE' ? yleTierLabel(v) : mseTierLabel(v);
+    const label = mode === 'YLE' ? yleTierLabel(v, locale) : mseTierLabel(v, locale);
     counts.set(label, (counts.get(label) ?? 0) + 1);
   });
   const total = latestRecords.length;
@@ -155,9 +166,16 @@ function buildDeltaHistogram(deltas: number[], mode: 'YLE' | 'MSE'): DeltaHistog
   return labels.map((bucket, i) => ({ bucket, count: counts[i]! }));
 }
 
-export function buildClassMacroAnalytics(allFiltered: CambridgeExamRecord[]): ClassMacroAnalytics {
+export function buildClassMacroAnalytics(
+  allFiltered: CambridgeExamRecord[],
+  locale: UiLocale = 'zh',
+): ClassMacroAnalytics {
   const notes: string[] = [
-    '进步口径：在当前筛选时间范围内，每位学生以「最近一次考试」的换算口径为准，取该口径下时间最早与最晚各一条记录计算分差；仅 1 条记录者计入「单次考试」人数。',
+    tr(
+      locale,
+      '进步口径：在当前筛选时间范围内，每位学生以「最近一次考试」的换算口径为准，取该口径下时间最早与最晚各一条记录计算分差；仅 1 条记录者计入「单次考试」人数。',
+      'Progress rule: within current date filters, each student is evaluated by the conversion mode of the latest exam, using earliest and latest records under that same mode for delta; students with only one record are counted as single-exam students.',
+    ),
   ];
 
   if (allFiltered.length === 0) {
@@ -187,7 +205,11 @@ export function buildClassMacroAnalytics(allFiltered: CambridgeExamRecord[]): Cl
       stratification: [],
       progress: null,
       notes: [
-        '当前样本中，学生最近一次考试同时存在 YLE 与 MSE 两种口径。请按「级别」筛选后再查看班级分层与进步汇总。',
+        tr(
+          locale,
+          '当前样本中，学生最近一次考试同时存在 YLE 与 MSE 两种口径。请按「级别」筛选后再查看班级分层与进步汇总。',
+          'Latest exams in current samples include both YLE and MSE scales. Please filter by level before reviewing class stratification and progress.',
+        ),
         ...notes,
       ],
     };
@@ -197,7 +219,7 @@ export function buildClassMacroAnalytics(allFiltered: CambridgeExamRecord[]): Cl
   const latestTotals = latestPerStudent.map((r) => extractConvertedTotal(r));
   const mean = latestTotals.reduce((a, b) => a + b, 0) / latestTotals.length;
   const med = median(latestTotals);
-  const stratification = buildStratificationRows(latestPerStudent, mode);
+  const stratification = buildStratificationRows(latestPerStudent, mode, locale);
 
   const names = Array.from(new Set(allFiltered.map((r) => r.name)));
   const deltas: number[] = [];

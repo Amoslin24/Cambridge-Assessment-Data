@@ -1,5 +1,7 @@
 import type { CambridgeExamRecord } from '@/lib/cambridgeEngine';
 
+export type UiLocale = 'zh' | 'en';
+
 export interface DistributionBarPoint {
   bucket: string;
   count: number;
@@ -38,9 +40,16 @@ export function pickLatestRecordPerStudent(records: CambridgeExamRecord[]): Camb
   return Array.from(latestByStudent.values());
 }
 
-export function buildConvertedTotalDistribution(records: CambridgeExamRecord[]): ConvertedTotalDistribution {
+function tr(locale: UiLocale, zhText: string, enText: string): string {
+  return locale === 'zh' ? zhText : enText;
+}
+
+export function buildConvertedTotalDistribution(
+  records: CambridgeExamRecord[],
+  locale: UiLocale = 'zh',
+): ConvertedTotalDistribution {
   if (records.length === 0) {
-    return { mode: 'EMPTY', data: [], note: '当前无可用于分布统计的数据。' };
+    return { mode: 'EMPTY', data: [], note: tr(locale, '当前无可用于分布统计的数据。', 'No data available for distribution statistics.') };
   }
 
   const hasYLE = records.some((record) => record.convertedResult.mode === 'YLE_SHIELDS');
@@ -49,7 +58,11 @@ export function buildConvertedTotalDistribution(records: CambridgeExamRecord[]):
     return {
       mode: 'MIXED',
       data: [],
-      note: '当前筛选结果同时包含 YLE 与 MSE 记录。为避免口径混淆，请进一步筛选“级别”。',
+      note: tr(
+        locale,
+        '当前筛选结果同时包含 YLE 与 MSE 记录。为避免口径混淆，请进一步筛选“级别”。',
+        'Current filtered result includes both YLE and MSE records. Please filter by level to avoid scale ambiguity.',
+      ),
     };
   }
 
@@ -71,7 +84,7 @@ export function buildConvertedTotalDistribution(records: CambridgeExamRecord[]):
     return {
       mode: 'YLE',
       data: buckets,
-      note: '分箱为总盾牌数（0–10）。',
+      note: tr(locale, '分箱为总盾牌数（0–10）。', 'Buckets represent total shields (0-10).'),
     };
   }
 
@@ -103,6 +116,10 @@ export function buildConvertedTotalDistribution(records: CambridgeExamRecord[]):
   return {
     mode: 'MSE',
     data: buckets,
-    note: '分箱为 Cambridge English Scale 总分（每 5 分一档，80–190）。',
+    note: tr(
+      locale,
+      '分箱为 Cambridge English Scale 总分（每 5 分一档，80–190）。',
+      'Buckets represent Cambridge English Scale totals (5-point bins, 80-190).',
+    ),
   };
 }

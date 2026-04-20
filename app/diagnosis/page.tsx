@@ -256,8 +256,8 @@ export default function DiagnosisPage(): JSX.Element {
 
     const part = pickPartForSuggestion(targetSkill, partitioned, minParts);
     const typePart = part ? mapPartToTypePart(focusRecord, targetSkill, part) : null;
-    return buildImprovementTaskCard(focusRecord, targetSkill, typePart, cardStrength, SKILL_LIBRARY_MAP);
-  }, [focusRecord, radarData]);
+    return buildImprovementTaskCard(focusRecord, targetSkill, typePart, cardStrength, SKILL_LIBRARY_MAP, locale);
+  }, [focusRecord, radarData, locale]);
 
   return (
     <main className="min-h-screen bg-slate-50 py-12 px-6">

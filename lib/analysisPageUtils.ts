@@ -1,4 +1,5 @@
 import { extractConvertedTotal } from '@/lib/convertedTotalDistribution';
+import type { UiLocale } from '@/lib/convertedTotalDistribution';
 import type { CambridgeExamRecord } from '@/lib/cambridgeEngine';
 import {
   mapPartToTypePart,
@@ -40,6 +41,10 @@ export interface ProgressMetrics {
   note: string;
 }
 
+function tr(locale: UiLocale, zhText: string, enText: string): string {
+  return locale === 'zh' ? zhText : enText;
+}
+
 export function isYLELevel(level: CambridgeExamRecord['level']): boolean {
   return level === 'Starters' || level === 'Movers' || level === 'Flyers';
 }
@@ -48,22 +53,26 @@ export function sumScores<T extends string>(scores: Record<T, number>, enabled: 
   return enabled.reduce((total, key) => total + scores[key], 0);
 }
 
-export function formatConvertedTotal(record: CambridgeExamRecord): string {
+export function formatConvertedTotal(record: CambridgeExamRecord, locale: UiLocale = 'zh'): string {
   const value = extractConvertedTotal(record);
   if (record.convertedResult.mode === 'YLE_SHIELDS') {
-    return `${value} 盾（总10）`;
+    return tr(locale, `${value} 盾（总10）`, `${value} shields (total 10)`);
   }
-  return `${value} 分（Scale）`;
+  return tr(locale, `${value} 分（Scale）`, `${value} points (Scale)`);
 }
 
-export function formatConvertedSkillValue(record: CambridgeExamRecord, detail: SkillDetail): string {
+export function formatConvertedSkillValue(
+  record: CambridgeExamRecord,
+  detail: SkillDetail,
+  locale: UiLocale = 'zh',
+): string {
   if (record.convertedResult.mode === 'YLE_SHIELDS') {
-    return `${detail.converted} 盾`;
+    return tr(locale, `${detail.converted} 盾`, `${detail.converted} shields`);
   }
   if (detail.converted === 0 && detail.rawTotal > 0) {
-    return `0 分（未达到量表最低阈值）`;
+    return tr(locale, '0 分（未达到量表最低阈值）', '0 points (below the minimum scale threshold)');
   }
-  return `${detail.converted} 分`;
+  return tr(locale, `${detail.converted} 分`, `${detail.converted} points`);
 }
 
 export function buildSkillRadarData(
@@ -317,10 +326,97 @@ function mergeStructuredGuidance(
   };
 }
 
+function buildEnglishGuidance(
+  dimension: PracticeDimension,
+  strength: SkillStrength,
+): ActionableGuidance {
+  const intensity = strength === 'WEAK'
+    ? 'Prioritize accuracy first, then gradually increase speed.'
+    : 'Prioritize stability and prevent avoidable score drops.';
+  if (dimension === 'LISTENING') {
+    return {
+      answerTips: [
+        'Preview stems quickly and predict target information before listening.',
+        'Use two-pass listening: locate first, then verify details.',
+        'Check semantic match instead of keyword-only matching.',
+      ],
+      cautionPoints: [
+        'Do not commit too early on the first heard phrase.',
+        'Recheck spelling, number form, and tense when applicable.',
+        'Track recurring error patterns and retrain them separately.',
+      ],
+      microDrillPlan: [
+        '3 min strategy demo + 8 min same-type drill + 4 min error review.',
+      ],
+      acceptanceCriteria: [
+        'Reach at least 70% accuracy in two consecutive same-type mini drills.',
+        intensity,
+      ],
+    };
+  }
+  if (dimension === 'WRITING') {
+    return {
+      answerTips: [
+        'Outline first: opening, body points, and closing.',
+        'Cover all task points before adding complex language.',
+        'Self-check by content, structure, and language in sequence.',
+      ],
+      cautionPoints: [
+        'Avoid template-only output without task-point response.',
+        'Recheck tense consistency, agreement, and spelling.',
+        'Keep register consistent with task context.',
+      ],
+      microDrillPlan: [
+        '5 min prompt analysis + 10 min timed writing + 5 min peer revision.',
+      ],
+      acceptanceCriteria: [
+        'All required task points are covered in each writing attempt.',
+        intensity,
+      ],
+    };
+  }
+  if (dimension === 'LANGUAGE_USE') {
+    return {
+      answerTips: [
+        'Decide grammatical role first, then choose form/tenses/collocation.',
+        'Use high-frequency grammar frames and phrase patterns.',
+        'Read the full sentence again for grammar and meaning consistency.',
+      ],
+      cautionPoints: [
+        'Do not solve by local words only; include context logic.',
+        'Check if target part of speech matches sentence position.',
+        'Keep core meaning unchanged in transformation tasks.',
+      ],
+      microDrillPlan: [
+        '4 min rule recap + 8 min focused practice + 3 min error closure.',
+      ],
+      acceptanceCriteria: [
+        'Student can explain the grammar basis for each answer.',
+        intensity,
+      ],
+    };
+  }
+  return {
+    answerTips: [
+      'Clarify task requirement and scoring focus before solving.',
+      'Follow accuracy-first, speed-second order.',
+      'Tag each error type and review by pattern after practice.',
+    ],
+    cautionPoints: [
+      'Avoid repeated drilling without structured review.',
+      'Return to baseline rule when the same error repeats.',
+      'Do a final quick check before submission.',
+    ],
+    microDrillPlan: ['5 min demo + 10 min same-type practice + 5 min debrief.'],
+    acceptanceCriteria: ['Weekly same-type accuracy keeps improving.', intensity],
+  };
+}
+
 /** 将题段列表格式化为「题段 + 答对题数/满分 + 约等于正确率」，避免读者将括号内数字误认为百分比。 */
 function formatPartThresholdLine(
   record: CambridgeExamRecord,
   groups: Array<{ skill: string; parts: Array<{ part: string; value: number }> }>,
+  locale: UiLocale,
 ): string {
   return groups
     .map((group) => {
@@ -328,10 +424,14 @@ function formatPartThresholdLine(
         .map((p) => {
           const denom = getPartRawMax(record.level, p.part as CambridgePartKey);
           const pct = denom > 0 ? Math.round((p.value / denom) * 1000) / 10 : 0;
-          return `${p.part}（本次答对 ${p.value}/${denom} 题，约 ${pct}%）`;
+          return tr(
+            locale,
+            `${p.part}（本次答对 ${p.value}/${denom} 题，约 ${pct}%）`,
+            `${p.part} (raw ${p.value}/${denom}, approx ${pct}%)`,
+          );
         })
         .join('；');
-      return `${group.skill}：${partsText}`;
+      return tr(locale, `${group.skill}：${partsText}`, `${group.skill}: ${partsText}`);
     })
     .join('。');
 }
@@ -346,42 +446,68 @@ export function buildImprovementTaskCard(
   typePart: string | null,
   strength: SkillStrength,
   skillLibraryMap: Map<string, SkillLibraryEntry> | null,
+  locale: UiLocale = 'zh',
 ): string {
   const key = typePart ? `${record.level}|${typePart}` : '';
   const entry = typePart && skillLibraryMap ? skillLibraryMap.get(key) : undefined;
-  const freqText = strength === 'WEAK' ? '每周约 3 次' : '每周约 2 次';
-  const minutesText = strength === 'WEAK' ? '单次约 15 分钟' : '单次约 10–15 分钟';
-  const targetText =
-    record.convertedResult.mode === 'YLE_SHIELDS'
-      ? '阶段目标：该技能在后续测验中达到 3 盾或以上（总盾制）。'
-      : '阶段目标：该技能对应题段的正确率在后续测验中稳定在 70% 或以上。';
+  const freqText = strength === 'WEAK' ? tr(locale, '每周约 3 次', 'about 3 times/week') : tr(locale, '每周约 2 次', 'about 2 times/week');
+  const minutesText = strength === 'WEAK' ? tr(locale, '单次约 15 分钟', 'about 15 min/session') : tr(locale, '单次约 10–15 分钟', 'about 10-15 min/session');
+  const targetText = record.convertedResult.mode === 'YLE_SHIELDS'
+    ? tr(
+        locale,
+        '阶段目标：该技能在后续测验中达到 3 盾或以上（总盾制）。',
+        'Stage target: this skill reaches 3+ shields in upcoming checks.',
+      )
+    : tr(
+        locale,
+        '阶段目标：该技能对应题段的正确率在后续测验中稳定在 70% 或以上。',
+        'Stage target: accuracy for related parts remains at 70% or above in upcoming checks.',
+      );
 
-  const focusName = entry?.skill ?? `「${skill}」维度下的具体题型需结合本次试卷与课堂观察再定`;
+  const focusName = entry?.skill ?? tr(
+    locale,
+    `「${skill}」维度下的具体题型需结合本次试卷与课堂观察再定`,
+    `Specific item type under "${skill}" should be finalized with paper evidence and class observation`,
+  );
   const levelTag = typePart ? `${record.level}，题段 ${typePart}` : record.level;
   const dimension = inferPracticeDimension(typePart, entry?.skill, skill);
   const pattern = inferQuestionPattern(entry);
-  const guidance = mergeStructuredGuidance(buildActionableGuidance(dimension, pattern, strength), entry);
-  const basisLine =
-    strength === 'WEAK'
-      ? '判定说明：根据本次成绩，该技能整体处于「薄弱」档，建议近期作为备课与作业的重点。'
-      : '判定说明：根据本次成绩，该技能整体处于「需关注」档，建议加强巩固，避免继续下滑。';
+  const guidance =
+    locale === 'zh'
+      ? mergeStructuredGuidance(buildActionableGuidance(dimension, pattern, strength), entry)
+      : buildEnglishGuidance(dimension, strength);
+  const basisLine = strength === 'WEAK'
+    ? tr(
+        locale,
+        '判定说明：根据本次成绩，该技能整体处于「薄弱」档，建议近期作为备课与作业的重点。',
+        'Rationale: this skill is currently in a weak band and should be prioritized in lesson planning and homework.',
+      )
+    : tr(
+        locale,
+        '判定说明：根据本次成绩，该技能整体处于「需关注」档，建议加强巩固，避免继续下滑。',
+        'Rationale: this skill is currently in an attention band and should be reinforced to prevent decline.',
+      );
 
   const referenceLine = entry?.advice
-    ? `参考训练要点（摘自技能库）：${entry.advice}`
-    : '参考训练要点：技能库中暂无与本题段完全匹配的条目，可先按下列通用步骤组织训练；若后续补充技能库，将自动显示更具体的训练描述。';
+    ? tr(locale, `参考训练要点（摘自技能库）：${entry.advice}`, 'Reference notes: localized skill-library advice is available in the Chinese view.')
+    : tr(
+        locale,
+        '参考训练要点：技能库中暂无与本题段完全匹配的条目，可先按下列通用步骤组织训练；若后续补充技能库，将自动显示更具体的训练描述。',
+        'Reference notes: no exact skill-library entry is matched yet; use the generic training steps below first.',
+      );
 
   const lines: string[] = [
-    `【优先改进】${focusName}（${levelTag}）`,
+    tr(locale, `【优先改进】${focusName}（${levelTag}）`, `[Priority Improvement] ${focusName} (${levelTag})`),
     basisLine,
-    `建议练习频次与时长：${freqText}；${minutesText}。`,
-    '【答题技巧】',
+    tr(locale, `建议练习频次与时长：${freqText}；${minutesText}。`, `Recommended frequency and duration: ${freqText}; ${minutesText}.`),
+    tr(locale, '【答题技巧】', '[Answering Strategies]'),
     ...guidance.answerTips.map((item) => `· ${item}`),
-    '【注意事项】',
+    tr(locale, '【注意事项】', '[Cautions]'),
     ...guidance.cautionPoints.map((item) => `· ${item}`),
     referenceLine,
-    '【课堂微训练流程（单次）】',
+    tr(locale, '【课堂微训练流程（单次）】', '[Micro Drill Flow (single session)]'),
     ...guidance.microDrillPlan.map((item) => `· ${item}`),
-    '【阶段验收标准】',
+    tr(locale, '【阶段验收标准】', '[Stage Acceptance Criteria]'),
     ...guidance.acceptanceCriteria.map((item) => `· ${item}`),
     targetText,
   ];
@@ -402,25 +528,42 @@ export function buildImprovementSuggestion(
   partitioned: PartThresholdPartition,
   minParts: MinPartsRows,
   skillLibraryMap: Map<string, SkillLibraryEntry> | null,
+  locale: UiLocale = 'zh',
 ): string {
   const suggestions: string[] = [];
 
   const appendPartNarrative = (yle: boolean): void => {
     if (partitioned.weakBySkill.length > 0) {
-      const partText = formatPartThresholdLine(record, partitioned.weakBySkill);
+      const partText = formatPartThresholdLine(record, partitioned.weakBySkill, locale);
       suggestions.push(
         yle
-          ? `【小题补充】下列题段在本次考试中正确率低于 60%（按各题段满分折算）。${partText}。教学建议：将上述题段纳入错题回顾与同类微练习，并在下一次小测或单元测中复查。`
-          : `【小题补充】下列题段在本次考试中正确率低于 60%（按各题段满分折算）。${partText}。教学建议：结合课堂讲评进行分技能、分题型的错因分析，并布置针对性巩固作业。`,
+          ? tr(
+              locale,
+              `【小题补充】下列题段在本次考试中正确率低于 60%（按各题段满分折算）。${partText}。教学建议：将上述题段纳入错题回顾与同类微练习，并在下一次小测或单元测中复查。`,
+              `[Part Add-on] The following parts are below 60% accuracy in this exam (normalized by each part max). ${partText}. Teaching suggestion: include these parts in error review and same-type micro drills, then recheck in the next quiz/unit test.`,
+            )
+          : tr(
+              locale,
+              `【小题补充】下列题段在本次考试中正确率低于 60%（按各题段满分折算）。${partText}。教学建议：结合课堂讲评进行分技能、分题型的错因分析，并布置针对性巩固作业。`,
+              `[Part Add-on] The following parts are below 60% accuracy in this exam (normalized by each part max). ${partText}. Teaching suggestion: perform skill/type-based error analysis and assign targeted consolidation tasks.`,
+            ),
       );
       return;
     }
     if (partitioned.attentionBySkill.length > 0) {
-      const partText = formatPartThresholdLine(record, partitioned.attentionBySkill);
+      const partText = formatPartThresholdLine(record, partitioned.attentionBySkill, locale);
       suggestions.push(
         yle
-          ? `【小题补充】下列题段正确率处于 60%–70% 的需关注区间（按各题段满分折算）。${partText}。教学建议：纳入周练与课堂即时反馈，防止波动发展为明显短板。`
-          : `【小题补充】下列题段正确率处于 60%–70% 的需关注区间（按各题段满分折算）。${partText}。教学建议：纳入周练与课堂即时反馈，巩固审题与作答规范。`,
+          ? tr(
+              locale,
+              `【小题补充】下列题段正确率处于 60%–70% 的需关注区间（按各题段满分折算）。${partText}。教学建议：纳入周练与课堂即时反馈，防止波动发展为明显短板。`,
+              `[Part Add-on] The following parts are in the 60%-70% attention range (normalized by each part max). ${partText}. Teaching suggestion: include them in weekly drills and immediate class feedback to prevent them from becoming clear weaknesses.`,
+            )
+          : tr(
+              locale,
+              `【小题补充】下列题段正确率处于 60%–70% 的需关注区间（按各题段满分折算）。${partText}。教学建议：纳入周练与课堂即时反馈，巩固审题与作答规范。`,
+              `[Part Add-on] The following parts are in the 60%-70% attention range (normalized by each part max). ${partText}. Teaching suggestion: include them in weekly drills and in-class feedback to reinforce task reading and response discipline.`,
+            ),
       );
     }
   };
@@ -430,13 +573,13 @@ export function buildImprovementSuggestion(
       const targetSkill = weakSkills[0]?.skill ?? 'R&W';
       const part = pickPartForSuggestion(targetSkill, partitioned, minParts);
       const typePart = part ? mapPartToTypePart(record, targetSkill, part) : null;
-      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'WEAK', skillLibraryMap));
+      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'WEAK', skillLibraryMap, locale));
     }
     if (weakSkills.length === 0 && attentionSkills.length > 0) {
       const targetSkill = attentionSkills[0]?.skill ?? 'R&W';
       const part = pickPartForSuggestion(targetSkill, partitioned, minParts);
       const typePart = part ? mapPartToTypePart(record, targetSkill, part) : null;
-      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'ATTENTION', skillLibraryMap));
+      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'ATTENTION', skillLibraryMap, locale));
     }
     appendPartNarrative(true);
   } else {
@@ -444,19 +587,23 @@ export function buildImprovementSuggestion(
       const targetSkill = weakSkills[0]?.skill ?? 'Reading';
       const part = pickPartForSuggestion(targetSkill, partitioned, minParts);
       const typePart = part ? mapPartToTypePart(record, targetSkill, part) : null;
-      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'WEAK', skillLibraryMap));
+      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'WEAK', skillLibraryMap, locale));
     }
     if (weakSkills.length === 0 && attentionSkills.length > 0) {
       const targetSkill = attentionSkills[0]?.skill ?? 'Reading';
       const part = pickPartForSuggestion(targetSkill, partitioned, minParts);
       const typePart = part ? mapPartToTypePart(record, targetSkill, part) : null;
-      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'ATTENTION', skillLibraryMap));
+      suggestions.push(buildImprovementTaskCard(record, targetSkill, typePart, 'ATTENTION', skillLibraryMap, locale));
     }
     appendPartNarrative(false);
   }
 
   if (suggestions.length === 0) {
-    return '根据本次数据，未检出需要单独列项的明显薄弱技能或题段。建议维持当前教学节奏，并继续通过阶段性测验观察长期表现是否稳定。';
+    return tr(
+      locale,
+      '根据本次数据，未检出需要单独列项的明显薄弱技能或题段。建议维持当前教学节奏，并继续通过阶段性测验观察长期表现是否稳定。',
+      'No standalone weak skills or parts were detected from this exam. Keep current teaching pace and continue tracking long-term stability through staged assessments.',
+    );
   }
 
   return suggestions.join('\n\n');
@@ -472,7 +619,10 @@ function computeStdDev(values: number[]): number {
   return Math.sqrt(variance);
 }
 
-export function buildProgressMetrics(records: CambridgeExamRecord[]): ProgressMetrics | null {
+export function buildProgressMetrics(
+  records: CambridgeExamRecord[],
+  locale: UiLocale = 'zh',
+): ProgressMetrics | null {
   if (records.length === 0) {
     return null;
   }
@@ -496,14 +646,18 @@ export function buildProgressMetrics(records: CambridgeExamRecord[]): ProgressMe
 
   const mixedNote =
     records.some((record) => record.convertedResult.mode !== targetMode) && records.length !== sameMode.length
-      ? '提示：该学生存在跨口径记录（YLE/MSE），进步指标仅基于与最近一次同口径的考试记录计算。'
+      ? tr(
+          locale,
+          '提示：该学生存在跨口径记录（YLE/MSE），进步指标仅基于与最近一次同口径的考试记录计算。',
+          'Note: this student has cross-scale records (YLE/MSE). Progress metrics are computed only from records under the same scale as the latest exam.',
+        )
       : '';
 
   return {
     mode: targetMode,
     recordCount: sameMode.length,
-    firstDate: first.examDate || '未知',
-    latestDate: latestInMode.examDate || '未知',
+    firstDate: first.examDate || tr(locale, '未知', 'Unknown'),
+    latestDate: latestInMode.examDate || tr(locale, '未知', 'Unknown'),
     firstConverted,
     latestConverted,
     deltaConverted,
