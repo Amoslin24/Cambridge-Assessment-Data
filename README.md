@@ -1,36 +1,56 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Cambridge Dashboard（Valruna）
 
-## Getting Started
+基于 **Next.js** 的 **Cambridge English** 成绩导入、换算与分析面板。数据在浏览器本地处理与持久化，不上传学生成绩到业务方服务器（部署形态除外，请自行评估托管环境）。
 
-First, run the development server:
+## 功能概览
+
+- **导入页** `/`：CSV / Excel 解析、级别校验、换算结果展示、覆盖或追加导入、模板与备份导出。
+- **分析页** `/analysis`：班级与个人趋势、分技能对比、题段正确率、学生画像与导出。
+- **诊断页** `/diagnosis`：单生最近一次或选定场次的诊断与提升建议（与画像共用建议引擎）。
+
+支持考试级别：`Starters`、`Movers`、`Flyers`、`KET`、`PET`、`FCE`。阅读/听力各 Part 的合法上限与 Cambridge 官方题段满分对齐（由 `getPartRawMax` 驱动，详见 `public/templates/cambridge-import-guide.md`）。
+
+## 本地运行
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+默认开发地址：<http://localhost:3000>。若需固定端口（例如 `3205`），可使用：
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npx next dev --hostname 127.0.0.1 --port 3205
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+生产构建与启动：
 
-## Learn More
+```bash
+npm run build
+npm run start
+# 示例：npm run start -- --hostname 127.0.0.1 --port 3205
+```
 
-To learn more about Next.js, take a look at the following resources:
+修改 `app/`、`lib/` 后若用生产模式预览，请先重新执行 `npm run build` 再 `npm run start`，否则仍为旧构建产物。
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 其他命令
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| 命令 | 说明 |
+|------|------|
+| `npm run lint` | ESLint |
+| `npm run test:engine` | 剑桥解析与换算引擎的 Node 测试 |
 
-## Deploy on Vercel
+## 文档索引
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- [`TEACHER_QUICK_START.md`](TEACHER_QUICK_START.md)：教师快速上手（导入字段、常见问题）。
+- [`PROJECT_SNAPSHOT.md`](PROJECT_SNAPSHOT.md)：项目状态、关键文件与续接约定。
+- [`public/templates/cambridge-import-guide.md`](public/templates/cambridge-import-guide.md)：列说明与各级别 R/L 官方满分表。
+- [`RELEASE_CHECKLIST.md`](RELEASE_CHECKLIST.md)：发布前检查项。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 技术栈（摘要）
+
+Next.js（App Router）、React、TypeScript、Tailwind CSS、Recharts、`xlsx`、html2canvas（画像 PNG 导出）。字体由 Next 的 `next/font` 加载（构建时需能访问 Google Fonts，否则请检查网络或字体配置）。
+
+## 许可与仓库
+
+私有项目；具体许可以仓库内 `LICENSE` 为准（若未添加则默认保留所有权利）。

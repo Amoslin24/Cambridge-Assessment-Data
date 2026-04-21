@@ -1,12 +1,10 @@
 import {
-  SCORE_LIMIT_PER_PART,
+  FCE_READING_SECTION_PARTS,
+  FCE_USE_OF_ENGLISH_PARTS,
   getPartRawMax,
   type CambridgeExamRecord,
   type CambridgePartKey,
 } from '@/lib/cambridgeEngine';
-
-/** 与 `cambridgeEngine.SCORE_LIMIT_PER_PART` 同源，供分析/阈值等模块使用。 */
-export const PART_RAW_MAX = SCORE_LIMIT_PER_PART;
 
 export interface SkillDetail {
   skill: string;
@@ -56,9 +54,74 @@ export function buildSkillDetails(record: CambridgeExamRecord): SkillDetail[] {
     ];
   }
 
-  const readingRaw = sumScores(record.reading, record.readingEnabledParts);
   const writingRaw = sumScores(record.writing, record.writingEnabledParts);
   const listeningRaw = sumScores(record.listening, record.listeningEnabledParts);
+
+  if (record.level === 'FCE') {
+    const uoeScale = record.convertedResult.useOfEnglishScale;
+    if (uoeScale === undefined) {
+      const readingRawAll = sumScores(record.reading, record.readingEnabledParts);
+      return [
+        {
+          skill: 'Reading',
+          converted: record.convertedResult.readingScale,
+          rawTotal: readingRawAll,
+          partDetails: formatPartDetails(record.reading, record.readingEnabledParts),
+          partEntries: buildPartEntries(record.reading, record.readingEnabledParts),
+        },
+        {
+          skill: 'Writing',
+          converted: record.convertedResult.writingScale,
+          rawTotal: writingRaw,
+          partDetails: formatPartDetails(record.writing, record.writingEnabledParts),
+          partEntries: buildPartEntries(record.writing, record.writingEnabledParts),
+        },
+        {
+          skill: 'Listening',
+          converted: record.convertedResult.listeningScale,
+          rawTotal: listeningRaw,
+          partDetails: formatPartDetails(record.listening, record.listeningEnabledParts),
+          partEntries: buildPartEntries(record.listening, record.listeningEnabledParts),
+        },
+      ];
+    }
+    const readingSectionParts = [...FCE_READING_SECTION_PARTS];
+    const uoeParts = [...FCE_USE_OF_ENGLISH_PARTS];
+    const readingSectionRaw = sumScores(record.reading, readingSectionParts);
+    const uoeRaw = sumScores(record.reading, uoeParts);
+    return [
+      {
+        skill: 'Reading',
+        converted: record.convertedResult.readingScale,
+        rawTotal: readingSectionRaw,
+        partDetails: formatPartDetails(record.reading, readingSectionParts),
+        partEntries: buildPartEntries(record.reading, readingSectionParts),
+      },
+      {
+        skill: 'Use of English',
+        converted: uoeScale,
+        rawTotal: uoeRaw,
+        partDetails: formatPartDetails(record.reading, uoeParts),
+        partEntries: buildPartEntries(record.reading, uoeParts),
+      },
+      {
+        skill: 'Writing',
+        converted: record.convertedResult.writingScale,
+        rawTotal: writingRaw,
+        partDetails: formatPartDetails(record.writing, record.writingEnabledParts),
+        partEntries: buildPartEntries(record.writing, record.writingEnabledParts),
+      },
+      {
+        skill: 'Listening',
+        converted: record.convertedResult.listeningScale,
+        rawTotal: listeningRaw,
+        partDetails: formatPartDetails(record.listening, record.listeningEnabledParts),
+        partEntries: buildPartEntries(record.listening, record.listeningEnabledParts),
+      },
+    ];
+  }
+
+  const readingRaw = sumScores(record.reading, record.readingEnabledParts);
   return [
     {
       skill: 'Reading',
@@ -93,6 +156,14 @@ export function getSkillMaxTotal(record: CambridgeExamRecord, skill: SkillDetail
       return sumPartMax(record.readingEnabledParts);
     }
     return sumPartMax(record.listeningEnabledParts);
+  }
+  if (record.level === 'FCE') {
+    if (skill === 'Reading') {
+      return sumPartMax([...FCE_READING_SECTION_PARTS]);
+    }
+    if (skill === 'Use of English') {
+      return sumPartMax([...FCE_USE_OF_ENGLISH_PARTS]);
+    }
   }
   if (skill === 'Reading') {
     return sumPartMax(record.readingEnabledParts);
@@ -152,7 +223,7 @@ export function pickAttentionSkillsByThreshold(
 }
 
 /**
- * 小题层面对齐选项3：以题段原始满分（默认 5）计算正确率，阈值与 MSE 分技能一致。
+ * 小题层面对齐选项3：以题段原始满分 `getPartRawMax(level, partKey)`（各级别官方 Part 满分）计算正确率，阈值与 MSE 分技能一致。
  */
 export function classifyPartStrength(record: CambridgeExamRecord, partKey: string, rawValue: number): PartStrength {
   const partMax = getPartRawMax(record.level, partKey as CambridgePartKey);
@@ -243,7 +314,7 @@ export function getPartNumber(partKey: string): number | null {
 
 export function mapPartToTypePart(
   record: CambridgeExamRecord,
-  skill: SkillDetail['skill'] | 'R&W' | 'Listening' | 'Reading' | 'Writing',
+  skill: SkillDetail['skill'] | 'R&W' | 'Listening' | 'Reading' | 'Writing' | 'Use of English',
   partKey: string,
 ): string | null {
   const n = getPartNumber(partKey);
@@ -256,7 +327,7 @@ export function mapPartToTypePart(
     }
     return `L-Pt${n}`;
   }
-  if (skill === 'Reading') {
+  if (skill === 'Reading' || skill === 'Use of English') {
     return `R-Pt${n}`;
   }
   if (skill === 'Writing') {

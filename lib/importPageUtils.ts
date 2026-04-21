@@ -39,6 +39,13 @@ export function renderConvertedResult(record: CambridgeExamRecord): string {
   if (record.convertedResult.mode === 'YLE_SHIELDS') {
     return `${record.convertedResult.value} 盾（总10，R&W ${record.convertedResult.readingWritingShield} / L ${record.convertedResult.listeningShield}）`;
   }
+  if (
+    record.level === 'FCE' &&
+    record.convertedResult.mode === 'MSE_SCALE' &&
+    record.convertedResult.useOfEnglishScale !== undefined
+  ) {
+    return `${record.convertedResult.value} 分（R ${record.convertedResult.readingScale} / UoE ${record.convertedResult.useOfEnglishScale} / W ${record.convertedResult.writingScale} / L ${record.convertedResult.listeningScale}）`;
+  }
   return `${record.convertedResult.value} 分（R ${record.convertedResult.readingScale} / W ${record.convertedResult.writingScale} / L ${record.convertedResult.listeningScale}）`;
 }
 
@@ -61,6 +68,13 @@ export function getSkillRawScores(record: CambridgeExamRecord): SkillRawScores {
 export function renderSkillConvertedBreakdown(record: CambridgeExamRecord): string {
   if (record.convertedResult.mode === 'YLE_SHIELDS') {
     return `R&W: ${record.convertedResult.readingWritingShield}盾 | L: ${record.convertedResult.listeningShield}盾`;
+  }
+  if (
+    record.level === 'FCE' &&
+    record.convertedResult.mode === 'MSE_SCALE' &&
+    record.convertedResult.useOfEnglishScale !== undefined
+  ) {
+    return `R: ${record.convertedResult.readingScale} | UoE: ${record.convertedResult.useOfEnglishScale} | W: ${record.convertedResult.writingScale} | L: ${record.convertedResult.listeningScale}`;
   }
   return `R: ${record.convertedResult.readingScale} | W: ${record.convertedResult.writingScale} | L: ${record.convertedResult.listeningScale}`;
 }

@@ -144,7 +144,14 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
               <div className="text-xs text-slate-500">
                 {studentProfile.record.convertedResult.mode === 'YLE_SHIELDS'
                   ? tr('YLE：R&W 与 Listening', 'YLE: R&W and Listening')
-                  : tr('MSE：Reading、Writing、Listening', 'MSE: Reading, Writing, Listening')}
+                  : studentProfile.record.level === 'FCE' &&
+                      studentProfile.record.convertedResult.mode === 'MSE_SCALE' &&
+                      studentProfile.record.convertedResult.useOfEnglishScale !== undefined
+                    ? tr(
+                        'FCE：Reading、Use of English、Writing、Listening',
+                        'FCE: Reading, Use of English, Writing, Listening',
+                      )
+                    : tr('MSE：Reading、Writing、Listening', 'MSE: Reading, Writing, Listening')}
               </div>
             </div>
 

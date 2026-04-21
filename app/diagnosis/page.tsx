@@ -63,6 +63,14 @@ function buildRadarData(record: CambridgeExamRecord): RadarPoint[] {
       { skill: 'Listening', converted: record.convertedResult.listeningShield },
     ];
   }
+  if (record.level === 'FCE' && record.convertedResult.useOfEnglishScale !== undefined) {
+    return [
+      { skill: 'Reading', converted: record.convertedResult.readingScale },
+      { skill: 'Use of English', converted: record.convertedResult.useOfEnglishScale },
+      { skill: 'Writing', converted: record.convertedResult.writingScale },
+      { skill: 'Listening', converted: record.convertedResult.listeningScale },
+    ];
+  }
   return [
     { skill: 'Reading', converted: record.convertedResult.readingScale },
     { skill: 'Writing', converted: record.convertedResult.writingScale },

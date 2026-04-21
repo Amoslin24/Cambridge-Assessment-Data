@@ -17,11 +17,14 @@ alwaysApply: true
 - 支持级别固定为：`Starters`、`Movers`、`Flyers`、`KET`、`PET`、`FCE`。
 - 成绩录入必须原子化：
   - 阅读：`R_P1` 到 `R_P7`（按级别约束可用题段）。
-  - 听力：`L_P1` 到 `L_P5`。
+  - 听力：`L_P1` 到 `L_P5`（**Starters / PET / FCE 仅 4 段**，其余级别 5 段；以 `getListeningEnabledParts` 为准）。
+- 各 `R_*` / `L_*` / `W_*` 的**合法上限**必须与 Cambridge 官方该 Part 满分一致，统一通过 **`getPartRawMax(level, partKey)`** 校验与参与 `maxTotal`、题段正确率分母；不得假设「阅读听力每格都是 0–5」。
 - `Starters` / `Movers` / `Flyers`：
   - 将原始总得分率换算为 `1-5` 个盾牌，并以图标形式展示。
-- `KET` / `PET` / `FCE`：
-  - 使用查表逻辑，将原始总分映射为 `Cambridge English Scale Score`。
+- `KET` / `PET`：
+  - 使用查表逻辑，将 Reading / Writing / Listening 原始分映射为 `Cambridge English Scale Score`。
+- `FCE`：
+  - **Reading**（Part 1、5、6、7）与 **Use of English**（Part 2–4）分别查表，外加 Writing、Listening；产品内总分可为四科尺度分可用均值（见 `convertFCE` / `PROJECT_SNAPSHOT`）。
 
 ## 文案与输出规范
 - 所有面向用户的 UI 文案、诊断反馈、分析结论必须使用专业、严谨的中文。

@@ -1,6 +1,6 @@
 # Cambridge Dashboard 项目快照
 
-更新时间：2026-04-20
+更新时间：2026-04-21
 
 ## 1) 当前状态（可直接续接）
 
@@ -36,13 +36,14 @@
   - 兼容旧模板字段别名
 
 ### 2.2 换算引擎（`lib/cambridgeEngine.ts`）
-- **题段原始满分**：导出常量 **`SCORE_LIMIT_PER_PART`（当前为 5）**，与 `maxTotal`、单题封顶等一致；分析侧题段正确率、小题阈值等均以此分母为准（经 `lib/examSkillBreakdown` 的 `PART_RAW_MAX` 同源引用）。
+- **题段原始满分与导入封顶**：一律以 **`getPartRawMax(level, partKey)`** 为准（各级别阅读/听力/写作各 Part 的 Cambridge 官方满分与题量；`maxTotal`、班级题段均分、小题正确率分母与此同源）。**`SCORE_LIMIT_PER_PART`** 仅为历史兼容导出（旧版「每格 0–5」），**不得**在新逻辑或文档中当作通用 R/L 上限。
 - YLE（Starters/Movers/Flyers）：
   - Writing 并入 Reading（即 R 列代表 R&W）
   - 输出 `R&W 盾`、`L 盾`、`总盾（10分制）`
-- MSE（KET/PET/FCE）：
-  - R/W/L 按查表换算为 Cambridge English Scale
-  - 总分采用“可用技能均值”（忽略 0 分技能）
+- MSE（KET/PET）：
+  - Reading / Writing / Listening 按查表换算为 Cambridge English Scale；总分采用三科尺度分的「可用技能均值」（忽略 0 分技能）。
+- **FCE**：
+  - **Reading**（`R_P1`、`R_P5`–`R_P7`）与 **Use of English**（`R_P2`–`R_P4`）分别查表，另加 Writing、Listening；界面总分（`value`）为上述 **四科** 尺度分的可用均值（不含口语，与成绩单「五段」展示仍有差异，以产品约定为准）。
 - 查表逻辑、阈值与 0 分处理已按参考表对齐。
 
 ### 2.3 导入页交互（`app/page.tsx`）
@@ -77,8 +78,8 @@
 - 多日期分技能对比（支持多选日期）
 - 多日期**小题明细对比**（按技能分区柱状图）：
   - **横轴**：仍按题段编号 `R_P1`、`R_P2`…（或听力 `L_P*`）顺序，不改名。
-  - **纵轴**：**题段正确率（%）** = 该次考试该题段原始正确数 ÷ **`SCORE_LIMIT_PER_PART`** × 100%；与解析引擎同源。
-  - **参考线**：60%、70% 正确率；Tooltip 同时展示百分比与「原始 x/5」。
+  - **纵轴**：**题段正确率（%）** = 该次考试该题段原始正确数 ÷ **`getPartRawMax(该生级别, 该题段)`** × 100%；与解析引擎同源。
+  - **参考线**：60%、70% 正确率；Tooltip 同时展示百分比与「原始 x/该题段满分」（按日期取当次试卷级别下的满分）。
 - MSE 参考线：
   - KET 基准线 `120`
   - PET 基准线 `150`
@@ -90,7 +91,7 @@
 - **班级/级别分布图（换算总分）**（已完成）：
   - **选定单一级别**：与筛选器一致，每人该级别下「最近一次」换算总分分布（YLE 0–10 盾；MSE 80–190 分箱）。
   - **全部级别**：按考试级别**分列多张图**（各级别内每人取该级别最近一次），避免 YLE/MSE 混在同一分布里误读。
-- **班级题段均分（最近一次）**（已完成）：按当前筛选与级别，对每人该级别最近一次试卷，在 **Reading / Listening（及 MSE 写作）** 各题段上求班级平均原始分（题段满分 5）；用于看班级在阅读或听力哪一段相对更弱。
+- **班级题段均分（最近一次）**（已完成）：按当前筛选与级别，对每人该级别最近一次试卷，在 **Reading / Listening（及 MSE 写作）** 各题段上求班级平均原始分，并按 **各题段在该级别下的官方满分** 折算为正确率（%）；用于看班级在阅读或听力哪一段相对更弱。
 - **班级宏观分析（分层与进步汇总）**（已完成，见 `lib/classMacroAnalytics.ts`）：能力分层条形图、进步分差分布、提升/持平等汇总；与筛选条件联动。
 - 学生画像卡（已完成）：
   - **导出**：支持 **「导出 PNG」**（`html2canvas` 截取 `#student-portrait-export-root`）与 **「打印为 PDF」**（`@media print` 仅打印画像区域；打印对话框中选「存储为 PDF」）。
@@ -100,7 +101,7 @@
   - 进步指标：首次 vs 最近一次（提升、均次提升、稳定性标准差）
   - 薄弱判定口径（选项3）：
     - YLE：盾数 ≤2 判薄弱，=3 判需关注
-    - KET/PET/FCE：分技能正确率 <60% 判薄弱，60–70% 判需关注
+    - KET/PET/FCE：分技能正确率 <60% 判薄弱，60–70% 判需关注（**FCE** 在存在 `useOfEnglishScale` 时拆成 **Reading / Use of English / Writing / Listening** 四技能，与诊断页、最近一次分技能柱状图一致）
   - **MSE 换算为 0 的说明**：若原始分已读取但换算为 0，界面会标注为 **“未达到量表最低阈值”**，避免误判为“未读取”。
   - **针对性提升建议**（可读性已优化）：任务卡式分段（判定说明、频次时长、技能库要点、执行步骤、阶段目标）；小题补充段中题段列表含「答对 x/满分、约 xx%」表述；与 `/diagnosis` 共用 **`buildImprovementTaskCard`**。
   - 技能库驱动建议（已完成，**静态内置**）：
@@ -121,6 +122,7 @@
 - 级别固定：`Starters` / `Movers` / `Flyers` / `KET` / `PET` / `FCE`。
 - 姓名单列可混合中英文；`Class`/`Set` 必须分列。
 - 数据导入必须保持原子分项结构（R/L/W part）。
+- **各题段可填最高分**以 Cambridge 官方该 Part 满分为准（代码：`getPartRawMax`）；Starters/PET/FCE 仅 **4** 段听力，勿把 `L_P5` 当作有效段。
 
 ## 4) 当前待办（按优先级）
 
@@ -154,8 +156,8 @@
 - `scripts/generate-skill-library.mjs`：从 Excel 生成静态技能库 TS
 - `lib/skillLibrary.generated.ts`：静态技能库（`SKILL_LIBRARY_ENTRIES` / `SKILL_LIBRARY_MAP`）
 - `app/api/skill-library/route.ts`：备用：从 Excel 技能库读取建议条目（JSON API）
-- `lib/cambridgeEngine.ts`：模板兼容、解析校验、换算查表；**导出** `SCORE_LIMIT_PER_PART`
-- `lib/examSkillBreakdown.ts`：技能/题段明细构建、强弱与题段阈值、`PART_RAW_MAX`（= `SCORE_LIMIT_PER_PART`）
+- `lib/cambridgeEngine.ts`：模板兼容、解析校验、换算查表；**导出** `getPartRawMax`、`getReadingEnabledParts`、`getListeningEnabledParts`、FCE Part 列表等；**`SCORE_LIMIT_PER_PART`** 仅历史兼容
+- `lib/examSkillBreakdown.ts`：技能/题段明细构建、强弱与题段阈值（正确率分母为 **`getPartRawMax`**）
 - `lib/convertedTotalDistribution.ts`：总分分布分箱、`pickLatestRecordPerStudent`
 - `lib/classCohortPartMeans.ts`：按级别拆分分布、班级题段均分
 - `lib/classMacroAnalytics.ts`：班级宏观分层与进步汇总
@@ -163,7 +165,7 @@
 - `public/templates/cambridge-import-template-zh.csv`：中文模板
 - `public/templates/cambridge-import-sample.csv`：示例数据
 - `public/templates/cambridge-import-sample-anomalies.csv`：异常示例数据
-- `public/templates/cambridge-import-guide.md`：字段规范与填写说明
+- `public/templates/cambridge-import-guide.md`：字段规范与填写说明（含各级别 **R/L 官方满分表**）
 - `RELEASE_CHECKLIST.md`：发布前检查项（构建/规则/关键流程回归）
 
 ## 6) 建议验证命令
@@ -187,5 +189,6 @@
 2) 姓名单列 Name/姓名，兼容中英文；
 3) Class 与 Set 分列；
 4) 追加导入按 Name+ExamDate+Level+Class+Set 去重。
+5) 题段满分与正确率分母以 `getPartRawMax` 为准，不得写回「一律 0–5」。
 本次任务目标：<填写本轮目标>
 ```

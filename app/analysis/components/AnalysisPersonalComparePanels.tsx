@@ -104,10 +104,18 @@ export function AnalysisPersonalComparePanels(props: AnalysisPersonalComparePane
                 'YLE 显示 Reading & Writing 与 Listening 两个维度。',
                 'YLE shows two dimensions: Reading & Writing and Listening.',
               )
-            : tr(
-                'MSE 显示 Reading、Writing、Listening 三个维度。',
-                'MSE shows three dimensions: Reading, Writing, and Listening.',
-              )}
+            : latestRecord &&
+                latestRecord.level === 'FCE' &&
+                latestRecord.convertedResult.mode === 'MSE_SCALE' &&
+                latestRecord.convertedResult.useOfEnglishScale !== undefined
+              ? tr(
+                  'FCE 显示 Reading、Use of English、Writing、Listening 四个维度。',
+                  'FCE shows four dimensions: Reading, Use of English, Writing, and Listening.',
+                )
+              : tr(
+                  'MSE 显示 Reading、Writing、Listening 三个维度。',
+                  'MSE shows three dimensions: Reading, Writing, and Listening.',
+                )}
         </p>
         <div className="mt-4 h-80">
           <ResponsiveContainer width="100%" height="100%">

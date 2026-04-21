@@ -14,7 +14,14 @@ import {
   extractConvertedTotal,
   pickLatestRecordPerStudent,
 } from '@/lib/convertedTotalDistribution';
-import { getPartRawMax, type CambridgeExamRecord, type CambridgePartKey, type ParseIssue } from '@/lib/cambridgeEngine';
+import {
+  FCE_READING_SECTION_PARTS,
+  FCE_USE_OF_ENGLISH_PARTS,
+  getPartRawMax,
+  type CambridgeExamRecord,
+  type CambridgePartKey,
+  type ParseIssue,
+} from '@/lib/cambridgeEngine';
 import {
   buildImprovementSuggestion,
   buildProgressMetrics,
@@ -216,9 +223,35 @@ export default function AnalysisPage(): JSX.Element {
       ];
     }
 
-    const readingRaw = sumScores(latestRecord.reading, latestRecord.readingEnabledParts);
     const writingRaw = sumScores(latestRecord.writing, latestRecord.writingEnabledParts);
     const listeningRaw = sumScores(latestRecord.listening, latestRecord.listeningEnabledParts);
+    if (latestRecord.level === 'FCE' && latestRecord.convertedResult.useOfEnglishScale !== undefined) {
+      const readingSectionRaw = sumScores(latestRecord.reading, [...FCE_READING_SECTION_PARTS]);
+      const uoeRaw = sumScores(latestRecord.reading, [...FCE_USE_OF_ENGLISH_PARTS]);
+      return [
+        {
+          skill: 'Reading',
+          raw: readingSectionRaw,
+          converted: latestRecord.convertedResult.readingScale,
+        },
+        {
+          skill: 'Use of English',
+          raw: uoeRaw,
+          converted: latestRecord.convertedResult.useOfEnglishScale,
+        },
+        {
+          skill: 'Writing',
+          raw: writingRaw,
+          converted: latestRecord.convertedResult.writingScale,
+        },
+        {
+          skill: 'Listening',
+          raw: listeningRaw,
+          converted: latestRecord.convertedResult.listeningScale,
+        },
+      ];
+    }
+    const readingRaw = sumScores(latestRecord.reading, latestRecord.readingEnabledParts);
     return [
       {
         skill: 'Reading',

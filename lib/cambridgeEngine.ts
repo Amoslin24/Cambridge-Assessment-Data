@@ -33,6 +33,8 @@ export interface ConvertedScaleScore {
   mode: 'MSE_SCALE';
   value: number;
   readingScale: number;
+  /** FCE：Reading and Use of English 试卷中 Part 2–4（语用）单独量表分；KET/PET 为 `undefined`。 */
+  useOfEnglishScale?: number;
   writingScale: number;
   listeningScale: number;
 }
@@ -107,7 +109,20 @@ const WRITING_PART_COUNT_BY_LEVEL: Record<CambridgeLevel, number> = {
   FCE: 2,
 };
 
-/** 默认题段原始分上限（YLE 及 MSE 的 R/L 默认按此值；MSE 写作按级别单独上限）。 */
+/** 各级别听力启用题段数量（与 Cambridge YLE / A2 Key / B1 Preliminary / B2 First 官方试卷一致）。 */
+const LISTENING_PART_COUNT_BY_LEVEL: Record<CambridgeLevel, number> = {
+  Starters: 4,
+  Movers: 5,
+  Flyers: 5,
+  KET: 5,
+  PET: 4,
+  FCE: 4,
+};
+
+/**
+ * 历史兼容名：此前 R/L 各 Part 一律按 5 封顶。
+ * 现由各级别 `getPartRawMax` 官方题量/满分驱动；请勿在新逻辑中当作通用上限使用。
+ */
 export const SCORE_LIMIT_PER_PART = 5;
 
 const MSE_WRITING_PART_MAX_BY_LEVEL: Record<
@@ -119,15 +134,56 @@ const MSE_WRITING_PART_MAX_BY_LEVEL: Record<
   FCE: { W_P1: 20, W_P2: 20 },
 };
 
+/**
+ * 阅读/读写各 Part 官方满分（每格填「该 Part 答对题数/得分」原始分）。
+ * 来源：Cambridge English 公开考纲（YLE 2018+；A2 Key / B1 Preliminary / B2 First 2020/2015 纸笔题型题量与分值）。
+ */
+const READING_PART_MAX_BY_LEVEL: Record<CambridgeLevel, Partial<Record<ReadingPartKey, number>>> = {
+  Starters: { R_P1: 5, R_P2: 5, R_P3: 5, R_P4: 5, R_P5: 5 },
+  Movers: { R_P1: 6, R_P2: 6, R_P3: 6, R_P4: 7, R_P5: 10, R_P6: 5 },
+  Flyers: { R_P1: 10, R_P2: 5, R_P3: 6, R_P4: 10, R_P5: 7, R_P6: 5, R_P7: 5 },
+  KET: { R_P1: 6, R_P2: 7, R_P3: 5, R_P4: 6, R_P5: 6 },
+  PET: { R_P1: 5, R_P2: 5, R_P3: 5, R_P4: 5, R_P5: 6, R_P6: 6 },
+  FCE: { R_P1: 8, R_P2: 8, R_P3: 8, R_P4: 12, R_P5: 12, R_P6: 12, R_P7: 10 },
+};
+
+/** 听力各 Part 官方满分（每格填该 Part 答对题数；与公开样卷题量一致）。 */
+const LISTENING_PART_MAX_BY_LEVEL: Record<CambridgeLevel, Partial<Record<ListeningPartKey, number>>> = {
+  Starters: { L_P1: 5, L_P2: 5, L_P3: 5, L_P4: 5 },
+  Movers: { L_P1: 5, L_P2: 5, L_P3: 5, L_P4: 5, L_P5: 5 },
+  Flyers: { L_P1: 5, L_P2: 5, L_P3: 5, L_P4: 5, L_P5: 5 },
+  KET: { L_P1: 5, L_P2: 5, L_P3: 5, L_P4: 5, L_P5: 5 },
+  PET: { L_P1: 7, L_P2: 6, L_P3: 6, L_P4: 6 },
+  FCE: { L_P1: 8, L_P2: 10, L_P3: 5, L_P4: 7 },
+};
+
 function isMSELevel(level: CambridgeLevel): level is Extract<CambridgeLevel, 'KET' | 'PET' | 'FCE'> {
   return level === 'KET' || level === 'PET' || level === 'FCE';
 }
 
+/** FCE：Reading 与 Use of English 在试卷中的 Part 划分（与成绩单分项一致）。 */
+export const FCE_READING_SECTION_PARTS: readonly ReadingPartKey[] = ['R_P1', 'R_P5', 'R_P6', 'R_P7'];
+export const FCE_USE_OF_ENGLISH_PARTS: readonly ReadingPartKey[] = ['R_P2', 'R_P3', 'R_P4'];
+
+export function getListeningEnabledParts(level: CambridgeLevel): ListeningPartKey[] {
+  const count = LISTENING_PART_COUNT_BY_LEVEL[level];
+  return ALL_LISTENING_PARTS.slice(0, count);
+}
+
 export function getPartRawMax(level: CambridgeLevel, partKey: CambridgePartKey): number {
-  if (!partKey.startsWith('W_') || !isMSELevel(level)) {
-    return SCORE_LIMIT_PER_PART;
+  if (partKey.startsWith('W_')) {
+    if (!isMSELevel(level)) {
+      return 0;
+    }
+    return MSE_WRITING_PART_MAX_BY_LEVEL[level][partKey as WritingPartKey] ?? 0;
   }
-  return MSE_WRITING_PART_MAX_BY_LEVEL[level][partKey as WritingPartKey] ?? SCORE_LIMIT_PER_PART;
+  if (partKey.startsWith('L_')) {
+    return LISTENING_PART_MAX_BY_LEVEL[level][partKey as ListeningPartKey] ?? 0;
+  }
+  if (partKey.startsWith('R_')) {
+    return READING_PART_MAX_BY_LEVEL[level][partKey as ReadingPartKey] ?? 0;
+  }
+  return 0;
 }
 
 function getPartAliases(partPrefix: 'R' | 'L' | 'W', partNumber: number): string[] {
@@ -231,6 +287,15 @@ const FCE_WRITING_SCALE_TABLE: Array<{ minRaw: number; scale: number }> = [
   { minRaw: 10, scale: 122 },
   { minRaw: 0, scale: 80 },
 ];
+const FCE_USE_OF_ENGLISH_SCALE_TABLE: Array<{ minRaw: number; scale: number }> = [
+  { minRaw: 28, scale: 190 },
+  { minRaw: 24, scale: 160 },
+  { minRaw: 16, scale: 140 },
+  { minRaw: 10, scale: 122 },
+  { minRaw: 0, scale: 80 },
+];
+
+/** B2 First Listening：30 题各 1 分；量表换算参考 Cambridge practice test converter（CER/4240）。 */
 const FCE_LISTENING_SCALE_TABLE: Array<{ minRaw: number; scale: number }> = [
   { minRaw: 30, scale: 190 },
   { minRaw: 27, scale: 180 },
@@ -473,7 +538,7 @@ function parseLevel(rawLevel: string): CambridgeLevel | null {
   return map[normalized] ?? null;
 }
 
-function getReadingEnabledParts(level: CambridgeLevel): ReadingPartKey[] {
+export function getReadingEnabledParts(level: CambridgeLevel): ReadingPartKey[] {
   const count = READING_PART_COUNT_BY_LEVEL[level];
   return ALL_READING_PARTS.slice(0, count);
 }
@@ -654,17 +719,32 @@ function convertPET(readingRaw: number, writingRaw: number, listeningRaw: number
   };
 }
 
-function convertFCE(readingRaw: number, writingRaw: number, listeningRaw: number): ConvertedScaleScore {
-  const readingScale = lookupThreshold(readingRaw, FCE_READING_SCALE_TABLE);
+function convertFCE(
+  fceReadingSectionRaw: number,
+  fceUseOfEnglishRaw: number,
+  writingRaw: number,
+  listeningRaw: number,
+): ConvertedScaleScore {
+  const readingScale = lookupThreshold(fceReadingSectionRaw, FCE_READING_SCALE_TABLE);
+  const useOfEnglishScale = lookupThreshold(fceUseOfEnglishRaw, FCE_USE_OF_ENGLISH_SCALE_TABLE);
   const writingScale = lookupThreshold(writingRaw, FCE_WRITING_SCALE_TABLE);
   const listeningScale = lookupThreshold(listeningRaw, FCE_LISTENING_SCALE_TABLE);
   return {
     mode: 'MSE_SCALE',
-    value: averageAvailableScores([readingScale, writingScale, listeningScale]),
+    value: averageAvailableScores([readingScale, useOfEnglishScale, writingScale, listeningScale]),
     readingScale,
+    useOfEnglishScale,
     writingScale,
     listeningScale,
   };
+}
+
+export interface ConvertRawScoresOptions {
+  /**
+   * FCE 专用：试卷「语用」(Reading 卷 Part 2–4) 原始分合计。
+   * 传入时 `readingRaw` 须为 Reading 分项（Part 1、5、6、7）原始分合计。
+   */
+  fceUseOfEnglishRaw?: number;
 }
 
 export function convertRawScores(
@@ -672,6 +752,7 @@ export function convertRawScores(
   readingRaw: number,
   writingRaw: number,
   listeningRaw: number,
+  options?: ConvertRawScoresOptions,
 ): ConvertedResult {
   if (level === 'Starters' || level === 'Movers' || level === 'Flyers') {
     return convertToYLEShields(level, readingRaw, writingRaw, listeningRaw);
@@ -682,7 +763,11 @@ export function convertRawScores(
   if (level === 'PET') {
     return convertPET(readingRaw, writingRaw, listeningRaw);
   }
-  return convertFCE(readingRaw, writingRaw, listeningRaw);
+  const uoe = options?.fceUseOfEnglishRaw;
+  if (uoe === undefined) {
+    throw new Error('FCE 换算需要提供 options.fceUseOfEnglishRaw（语用 Part 2–4 原始分合计）。');
+  }
+  return convertFCE(readingRaw, uoe, writingRaw, listeningRaw);
 }
 
 function buildReadingMap(
@@ -797,7 +882,7 @@ function parseRowToRecord(
   const listening = listeningResult.scores;
   const writing = writingResult.scores;
   const readingEnabledParts = getReadingEnabledParts(level);
-  const listeningEnabledParts = [...ALL_LISTENING_PARTS];
+  const listeningEnabledParts = getListeningEnabledParts(level);
   const writingEnabledParts = getWritingEnabledParts(level);
   const readingRaw = sumEnabledScores(reading, readingEnabledParts);
   const listeningRaw = sumEnabledScores(listening, listeningEnabledParts);
@@ -809,7 +894,15 @@ function parseRowToRecord(
       0,
     );
   const accuracyRate = maxTotal > 0 ? rawTotal / maxTotal : 0;
-  const convertedResult = convertRawScores(level, readingRaw, writingRaw, listeningRaw);
+  const convertedResult =
+    level === 'FCE'
+      ? convertFCE(
+          FCE_READING_SECTION_PARTS.reduce((sum, key) => sum + reading[key], 0),
+          FCE_USE_OF_ENGLISH_PARTS.reduce((sum, key) => sum + reading[key], 0),
+          writingRaw,
+          listeningRaw,
+        )
+      : convertRawScores(level, readingRaw, writingRaw, listeningRaw);
 
   return {
     record: {
