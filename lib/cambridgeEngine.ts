@@ -140,7 +140,8 @@ const MSE_WRITING_PART_MAX_BY_LEVEL: Record<
  */
 const READING_PART_MAX_BY_LEVEL: Record<CambridgeLevel, Partial<Record<ReadingPartKey, number>>> = {
   Starters: { R_P1: 5, R_P2: 5, R_P3: 5, R_P4: 5, R_P5: 5 },
-  Movers: { R_P1: 6, R_P2: 6, R_P3: 6, R_P4: 7, R_P5: 10, R_P6: 5 },
+  /** A1 Movers R&W：各 Part 官方总分（Part 6 为产出型写作共 10 分，非 5）。合计 39 分。 */
+  Movers: { R_P1: 5, R_P2: 6, R_P3: 6, R_P4: 5, R_P5: 7, R_P6: 10 },
   Flyers: { R_P1: 10, R_P2: 5, R_P3: 6, R_P4: 10, R_P5: 7, R_P6: 5, R_P7: 5 },
   KET: { R_P1: 6, R_P2: 7, R_P3: 5, R_P4: 6, R_P5: 6 },
   PET: { R_P1: 5, R_P2: 5, R_P3: 5, R_P4: 5, R_P5: 6, R_P6: 6 },

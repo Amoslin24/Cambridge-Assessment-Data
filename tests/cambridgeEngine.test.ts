@@ -50,6 +50,8 @@ async function run(): Promise<void> {
   assert.equal(getPartRawMax('PET', 'R_P1'), 5);
   assert.equal(getPartRawMax('KET', 'R_P1'), 6);
   assert.equal(getPartRawMax('Flyers', 'W_P1'), 0);
+  assert.equal(getPartRawMax('Movers', 'R_P6'), 10);
+  assert.equal(getPartRawMax('Movers', 'R_P1'), 5);
 
   // KET：写作 raw=30 应到 150（旧 bug 会因封顶 5+5 导致异常偏低）
   expectMSE(
