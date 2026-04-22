@@ -128,10 +128,23 @@ export default function AnalysisPage(): JSX.Element {
     ).sort();
   }, [records]);
 
+  const hasExactStudentSelection = useMemo((): boolean => {
+    return selectedStudent !== 'ALL' && studentOptions.includes(selectedStudent);
+  }, [selectedStudent, studentOptions]);
+
   const filteredRecords = useMemo((): CambridgeExamRecord[] => {
     return records.filter((record) => {
-      if (selectedStudent !== 'ALL' && record.name !== selectedStudent) {
-        return false;
+      if (selectedStudent !== 'ALL') {
+        if (hasExactStudentSelection) {
+          if (record.name !== selectedStudent) {
+            return false;
+          }
+        } else {
+          const keyword = selectedStudent.trim().toLowerCase();
+          if (keyword.length > 0 && !record.name.toLowerCase().includes(keyword)) {
+            return false;
+          }
+        }
       }
       if (selectedLevel !== 'ALL' && record.level !== selectedLevel) {
         return false;
@@ -150,7 +163,7 @@ export default function AnalysisPage(): JSX.Element {
       }
       return true;
     });
-  }, [records, selectedStudent, selectedLevel, selectedClass, selectedSet, dateFrom, dateTo]);
+  }, [records, selectedStudent, selectedLevel, selectedClass, selectedSet, dateFrom, dateTo, hasExactStudentSelection]);
 
   const trendData = useMemo(() => {
     return [...filteredRecords]
@@ -650,7 +663,7 @@ export default function AnalysisPage(): JSX.Element {
 
                   <AnalysisStudentPortraitPanel
                     locale={locale}
-                    selectedStudent={selectedStudent}
+                    selectedStudent={hasExactStudentSelection ? selectedStudent : 'ALL'}
                     studentProfile={studentProfile}
                     portraitExporting={portraitExporting}
                     studentPortraitExportRef={studentPortraitExportRef}

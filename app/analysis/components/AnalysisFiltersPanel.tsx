@@ -1,6 +1,6 @@
 'use client';
 
-import type { JSX } from 'react';
+import { useId, type JSX } from 'react';
 
 export interface AnalysisFiltersPanelProps {
   locale: 'zh' | 'en';
@@ -54,22 +54,25 @@ export function AnalysisFiltersPanel(props: AnalysisFiltersPanelProps): JSX.Elem
     showOnlyComparableSkills,
     onShowOnlyComparableSkillsChange,
   } = props;
+  const studentDatalistId = useId();
+  const studentInputValue = selectedStudent === 'ALL' ? '' : selectedStudent;
 
   return (
     <>
       <div className="mt-8 grid gap-3 md:grid-cols-2">
-        <select
-          value={selectedStudent}
-          onChange={(event) => onStudentChange(event.target.value)}
+        <input
+          type="search"
+          value={studentInputValue}
+          list={studentDatalistId}
+          onChange={(event) => onStudentChange(event.target.value || 'ALL')}
+          placeholder={locale === 'zh' ? '全部学生（可输入姓名筛选）' : 'All students (type to filter by name)'}
           className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-        >
-          <option value="ALL">{locale === 'zh' ? '全部学生' : 'All students'}</option>
+        />
+        <datalist id={studentDatalistId}>
           {studentOptions.map((student) => (
-            <option key={student} value={student}>
-              {student}
-            </option>
+            <option key={student} value={student} />
           ))}
-        </select>
+        </datalist>
         <select
           value={selectedLevel}
           onChange={(event) => onLevelChange(event.target.value)}
