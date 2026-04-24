@@ -52,6 +52,43 @@ interface RadarPoint {
   converted: number;
 }
 
+function getInitialLocale(): 'zh' | 'en' {
+  if (typeof window === 'undefined') {
+    return 'zh';
+  }
+  try {
+    const rawLocale = window.localStorage.getItem(UI_LOCALE_STORAGE_KEY);
+    if (rawLocale === 'zh' || rawLocale === 'en') {
+      return rawLocale;
+    }
+  } catch {
+    // ignore locale restore errors
+  }
+  return 'zh';
+}
+
+function getInitialDashboardState(): { records: CambridgeExamRecord[]; savedAt: string } {
+  if (typeof window === 'undefined') {
+    return { records: [], savedAt: '' };
+  }
+  try {
+    const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
+    if (!raw) {
+      return { records: [], savedAt: '' };
+    }
+    const parsed = JSON.parse(raw) as PersistedDashboardState;
+    if (!parsed || !Array.isArray(parsed.records)) {
+      return { records: [], savedAt: '' };
+    }
+    return {
+      records: parsed.records,
+      savedAt: parsed.savedAt || '',
+    };
+  } catch {
+    return { records: [], savedAt: '' };
+  }
+}
+
 function extractConverted(record: CambridgeExamRecord): number {
   return record.convertedResult.value;
 }
@@ -97,20 +134,11 @@ function formatConvertedLabel(record: CambridgeExamRecord): string {
   return `${value} 分（Scale）`;
 }
 
-function formatConvertedSkillValueForDiagnosis(record: CambridgeExamRecord, skill: RadarPoint['skill'], converted: number): string {
-  if (record.convertedResult.mode === 'YLE_SHIELDS') {
-    return `${converted} 盾`;
-  }
-  if (converted === 0) {
-    return '0 分（未达到量表最低阈值）';
-  }
-  return `${converted} 分`;
-}
-
 export default function DiagnosisPage(): JSX.Element {
-  const [locale, setLocale] = useState<'zh' | 'en'>('zh');
-  const [records, setRecords] = useState<CambridgeExamRecord[]>([]);
-  const [savedAt, setSavedAt] = useState<string>('');
+  const [initialState] = useState(getInitialDashboardState);
+  const [locale, setLocale] = useState<'zh' | 'en'>(getInitialLocale);
+  const [records] = useState<CambridgeExamRecord[]>(initialState.records);
+  const [savedAt] = useState<string>(initialState.savedAt);
   const [selectedStudent, setSelectedStudent] = useState<string>('ALL');
   const [selectedLevel, setSelectedLevel] = useState<string>('ALL');
   const [selectedExamDate, setSelectedExamDate] = useState<string>('LATEST');
@@ -121,39 +149,11 @@ export default function DiagnosisPage(): JSX.Element {
 
   useEffect((): void => {
     try {
-      const rawLocale = window.localStorage.getItem(UI_LOCALE_STORAGE_KEY);
-      if (rawLocale === 'zh' || rawLocale === 'en') {
-        setLocale(rawLocale);
-      }
-    } catch {
-      // ignore locale restore errors
-    }
-  }, []);
-
-  useEffect((): void => {
-    try {
       window.localStorage.setItem(UI_LOCALE_STORAGE_KEY, locale);
     } catch {
       // ignore locale persist errors
     }
   }, [locale]);
-
-  useEffect((): void => {
-    try {
-      const raw = window.localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (!raw) {
-        return;
-      }
-      const parsed = JSON.parse(raw) as PersistedDashboardState;
-      if (!parsed || !Array.isArray(parsed.records)) {
-        return;
-      }
-      setRecords(parsed.records);
-      setSavedAt(parsed.savedAt || '');
-    } catch {
-      // ignore
-    }
-  }, []);
 
   const savedAtText = useMemo((): string => {
     if (!savedAt) {
@@ -163,7 +163,9 @@ export default function DiagnosisPage(): JSX.Element {
     if (Number.isNaN(date.getTime())) {
       return '';
     }
-    return tr(`数据更新时间：${date.toLocaleString('zh-CN')}`, `Updated at: ${date.toLocaleString('en-US')}`);
+    return locale === 'zh'
+      ? `数据更新时间：${date.toLocaleString('zh-CN')}`
+      : `Updated at: ${date.toLocaleString('en-US')}`;
   }, [savedAt, locale]);
 
   const studentOptions = useMemo((): string[] => {
@@ -186,19 +188,6 @@ export default function DiagnosisPage(): JSX.Element {
           .filter((value) => value.length > 0),
       ),
     ).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
-  }, [records, selectedStudent]);
-
-  const latestRecordForStudent = useMemo((): CambridgeExamRecord | null => {
-    if (selectedStudent === 'ALL') {
-      return null;
-    }
-    const list = records.filter((record) => record.name === selectedStudent);
-    if (list.length === 0) {
-      return null;
-    }
-    return list
-      .slice()
-      .sort((a, b) => new Date(b.examDate).getTime() - new Date(a.examDate).getTime())[0];
   }, [records, selectedStudent]);
 
   const focusRecord = useMemo((): CambridgeExamRecord | null => {

@@ -6,9 +6,11 @@ export type IssueFilterKey =
   | 'OVER_LIMIT_L'
   | 'OVER_LIMIT_W'
   | 'NON_NUMERIC'
-  | 'NEGATIVE';
+  | 'NEGATIVE'
+  | 'MISSING_FIELD'
+  | 'DUPLICATE_RECORD';
 
-export type IssueKind = 'OVER_LIMIT' | 'NON_NUMERIC' | 'NEGATIVE' | 'OTHER';
+export type IssueKind = 'OVER_LIMIT' | 'NON_NUMERIC' | 'NEGATIVE' | 'MISSING_FIELD' | 'DUPLICATE_RECORD' | 'OTHER';
 export type IssuePart = 'R' | 'L' | 'W' | 'N/A';
 
 export interface IssueSummary {
@@ -17,6 +19,8 @@ export interface IssueSummary {
   overLimitWritingCount: number;
   nonNumericCount: number;
   negativeCount: number;
+  missingFieldCount: number;
+  duplicateRecordCount: number;
   affectedRowCount: number;
 }
 
@@ -35,6 +39,12 @@ export function getIssueFilterLabel(filter: IssueFilterKey): string {
   }
   if (filter === 'NEGATIVE') {
     return '负数分值';
+  }
+  if (filter === 'MISSING_FIELD') {
+    return '缺字段';
+  }
+  if (filter === 'DUPLICATE_RECORD') {
+    return '重复记录';
   }
   return '全部异常';
 }
@@ -61,6 +71,12 @@ export function classifyIssueKind(issue: ParseIssue): IssueKind {
   if (issue.message.includes('低于 0')) {
     return 'NEGATIVE';
   }
+  if (issue.message.includes('缺少')) {
+    return 'MISSING_FIELD';
+  }
+  if (issue.message.includes('检测到重复记录')) {
+    return 'DUPLICATE_RECORD';
+  }
   return 'OTHER';
 }
 
@@ -73,6 +89,12 @@ export function getIssueKindLabel(kind: IssueKind): string {
   }
   if (kind === 'NEGATIVE') {
     return '负数分值';
+  }
+  if (kind === 'MISSING_FIELD') {
+    return '缺字段';
+  }
+  if (kind === 'DUPLICATE_RECORD') {
+    return '重复记录';
   }
   return '其他';
 }
@@ -95,6 +117,12 @@ export function matchesIssueFilter(issue: ParseIssue, filter: IssueFilterKey): b
   if (filter === 'NEGATIVE') {
     return kind === 'NEGATIVE';
   }
+  if (filter === 'MISSING_FIELD') {
+    return kind === 'MISSING_FIELD';
+  }
+  if (filter === 'DUPLICATE_RECORD') {
+    return kind === 'DUPLICATE_RECORD';
+  }
   return true;
 }
 
@@ -104,6 +132,8 @@ export function buildIssueSummary(issues: ParseIssue[]): IssueSummary {
   let overLimitWritingCount = 0;
   let nonNumericCount = 0;
   let negativeCount = 0;
+  let missingFieldCount = 0;
+  let duplicateRecordCount = 0;
   const affectedRows = new Set<number>();
 
   issues.forEach((issue) => {
@@ -124,6 +154,12 @@ export function buildIssueSummary(issues: ParseIssue[]): IssueSummary {
     } else if (kind === 'NEGATIVE') {
       negativeCount += 1;
       affectedRows.add(issue.rowNumber);
+    } else if (kind === 'MISSING_FIELD') {
+      missingFieldCount += 1;
+      affectedRows.add(issue.rowNumber);
+    } else if (kind === 'DUPLICATE_RECORD') {
+      duplicateRecordCount += 1;
+      affectedRows.add(issue.rowNumber);
     }
   });
 
@@ -133,6 +169,8 @@ export function buildIssueSummary(issues: ParseIssue[]): IssueSummary {
     overLimitWritingCount,
     nonNumericCount,
     negativeCount,
+    missingFieldCount,
+    duplicateRecordCount,
     affectedRowCount: affectedRows.size,
   };
 }

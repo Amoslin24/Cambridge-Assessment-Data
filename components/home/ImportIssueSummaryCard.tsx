@@ -16,6 +16,8 @@ export interface ImportIssueSummaryCardProps {
   overLimitWritingCount: number;
   nonNumericCount: number;
   negativeCount: number;
+  missingFieldCount: number;
+  duplicateRecordCount: number;
   affectedRowCount: number;
   issueDeltaText: string;
   activeFilter: IssueFilterKey;
@@ -30,6 +32,8 @@ export function ImportIssueSummaryCard(props: ImportIssueSummaryCardProps): JSX.
     overLimitWritingCount,
     nonNumericCount,
     negativeCount,
+    missingFieldCount,
+    duplicateRecordCount,
     affectedRowCount,
     issueDeltaText,
     activeFilter,
@@ -42,6 +46,8 @@ export function ImportIssueSummaryCard(props: ImportIssueSummaryCardProps): JSX.
     { key: 'OVER_LIMIT_W', label: locale === 'zh' ? '写作超上限' : 'Writing over limit', count: overLimitWritingCount },
     { key: 'NON_NUMERIC', label: locale === 'zh' ? '非数字分值' : 'Non-numeric', count: nonNumericCount },
     { key: 'NEGATIVE', label: locale === 'zh' ? '负数分值' : 'Negative values', count: negativeCount },
+    { key: 'MISSING_FIELD', label: locale === 'zh' ? '缺字段' : 'Missing field', count: missingFieldCount },
+    { key: 'DUPLICATE_RECORD', label: locale === 'zh' ? '重复记录' : 'Duplicate records', count: duplicateRecordCount },
   ];
 
   return (

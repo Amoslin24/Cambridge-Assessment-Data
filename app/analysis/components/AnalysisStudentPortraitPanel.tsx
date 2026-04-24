@@ -238,7 +238,7 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
                     ? '—'
                     : studentProfile.weakSkills.map((item) => `${item.skill}：${item.converted}`).join('；')}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="portrait-caliber-note mt-1 text-xs text-slate-500 print:hidden">
                   {tr(
                     '口径：YLE 盾数 ≤2 判薄弱；KET/PET/FCE 分技能正确率 <60% 判薄弱。',
                     'Rule: YLE shields <= 2 are weak; for KET/PET/FCE, skill accuracy <60% is weak.',
@@ -258,7 +258,7 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
                         )
                         .join('；')}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="portrait-caliber-note mt-1 text-xs text-slate-500 print:hidden">
                   {tr(
                     '口径：按各题段满分折算，正确率 <60% 判为薄弱小题；与 MSE 分技能阈值对齐。',
                     'Rule: convert by each part max; parts with accuracy <60% are weak, aligned with MSE skill threshold logic.',
@@ -275,7 +275,7 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
                     ? '—'
                     : studentProfile.attentionSkills.map((item) => `${item.skill}：${item.converted}`).join('；')}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="portrait-caliber-note mt-1 text-xs text-slate-500 print:hidden">
                   {tr(
                     '口径：YLE 盾数=3；KET/PET/FCE 分技能正确率 60–70%。',
                     'Rule: YLE shields = 3; for KET/PET/FCE, skill accuracy in 60-70%.',
@@ -295,7 +295,7 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
                         )
                         .join('；')}
                 </div>
-                <div className="mt-1 text-xs text-slate-500">
+                <div className="portrait-caliber-note mt-1 text-xs text-slate-500 print:hidden">
                   {tr(
                     '口径：按各题段满分折算，正确率处于 60%–70% 区间。',
                     'Rule: based on each part max, attention range is 60%-70% accuracy.',
@@ -309,7 +309,7 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
                 <div className="text-sm font-semibold text-slate-900">
                   {tr('进步指标（首次 vs 最近一次）', 'Progress Metrics (First vs Latest)')}
                 </div>
-                <div className="text-xs text-slate-500">
+                <div className="portrait-caliber-note text-xs text-slate-500 print:hidden">
                   {tr('口径：', 'Scale: ')}
                   {studentProfile.record.convertedResult.mode === 'YLE_SHIELDS' ? tr('YLE（盾）', 'YLE (shields)') : 'MSE (Scale)'}
                 </div>
@@ -324,7 +324,11 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
               ) : (
                 <>
                   {studentProfile.progress.note && (
-                    <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+                    <div
+                      className={`mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 ${
+                        studentProfile.progress.note.includes('口径') ? 'portrait-caliber-note print:hidden' : ''
+                      }`}
+                    >
                       {studentProfile.progress.note}
                     </div>
                   )}

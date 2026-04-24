@@ -20,8 +20,6 @@ export type ListeningPartKey = 'L_P1' | 'L_P2' | 'L_P3' | 'L_P4' | 'L_P5';
 export type WritingPartKey = 'W_P1' | 'W_P2';
 export type CambridgePartKey = ReadingPartKey | ListeningPartKey | WritingPartKey;
 
-type MSELevel = Extract<CambridgeLevel, 'KET' | 'PET' | 'FCE'>;
-
 export interface ConvertedShields {
   mode: 'YLE_SHIELDS';
   value: number;
@@ -319,44 +317,6 @@ const HEADER_ALIASES = {
 
 function normalizeHeader(header: string): string {
   return header.replace(/\s+/g, '').replace(/[-_]/g, '').toLowerCase();
-}
-
-function isValidPartScore(value: unknown): { ok: true; numeric: number } | { ok: false; reason: string } {
-  if (value === null || value === undefined) {
-    return { ok: true, numeric: 0 };
-  }
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      return { ok: true, numeric: 0 };
-    }
-    const parsed = Number(trimmed);
-    if (!Number.isFinite(parsed)) {
-      return { ok: false, reason: '分值不是有效数字' };
-    }
-    return { ok: true, numeric: parsed };
-  }
-  if (typeof value === 'number') {
-    if (!Number.isFinite(value)) {
-      return { ok: false, reason: '分值不是有效数字' };
-    }
-    return { ok: true, numeric: value };
-  }
-  return { ok: false, reason: '分值类型不支持' };
-}
-
-function readArrayCellByAliases(
-  normalizedHeaders: string[],
-  row: unknown[],
-  aliases: string[],
-): unknown {
-  for (const alias of aliases) {
-    const index = normalizedHeaders.indexOf(normalizeHeader(alias));
-    if (index >= 0) {
-      return row[index];
-    }
-  }
-  return '';
 }
 
 function ensureRequiredHeaders(normalizedHeaders: string[]): PreflightIssue[] {
@@ -876,6 +836,26 @@ function parseRowToRecord(
     };
   }
 
+  const rowFieldIssues: ParseIssue[] = [];
+  if (!examDate) {
+    rowFieldIssues.push({
+      rowNumber,
+      message: '缺少考试日期（ExamDate/考试日期）。',
+    });
+  }
+  if (!className) {
+    rowFieldIssues.push({
+      rowNumber,
+      message: '缺少班级（Class/班级），已按空值导入。',
+    });
+  }
+  if (!setName) {
+    rowFieldIssues.push({
+      rowNumber,
+      message: '缺少组别（Set/组别），已按空值导入。',
+    });
+  }
+
   const readingResult = buildReadingMap(row, level, rowNumber);
   const listeningResult = buildListeningMap(row, level, rowNumber);
   const writingResult = buildWritingMap(row, level, rowNumber);
@@ -927,8 +907,38 @@ function parseRowToRecord(
       accuracyRate,
       convertedResult,
     },
-    issues: [...readingResult.issues, ...listeningResult.issues, ...writingResult.issues],
+    issues: [...rowFieldIssues, ...readingResult.issues, ...listeningResult.issues, ...writingResult.issues],
   };
+}
+
+function buildRecordDedupKeyForImport(record: CambridgeExamRecord): string {
+  return [
+    record.name.trim().toLowerCase(),
+    record.examDate.trim(),
+    record.level,
+    record.className.trim().toLowerCase(),
+    record.setName.trim().toLowerCase(),
+  ].join('|');
+}
+
+function buildDuplicateRecordIssues(items: Array<{ record: CambridgeExamRecord; rowNumber: number }>): ParseIssue[] {
+  const firstRowByKey = new Map<string, number>();
+  const issues: ParseIssue[] = [];
+
+  items.forEach(({ record, rowNumber }) => {
+    const key = buildRecordDedupKeyForImport(record);
+    const firstRowNumber = firstRowByKey.get(key);
+    if (firstRowNumber !== undefined) {
+      issues.push({
+        rowNumber,
+        message: `检测到重复记录：与第 ${firstRowNumber} 行键值相同（Name + ExamDate + Level + Class + Set）。`,
+      });
+      return;
+    }
+    firstRowByKey.set(key, rowNumber);
+  });
+
+  return issues;
 }
 
 export async function parseCambridgeSpreadsheet(file: File): Promise<ParseCambridgeResult> {
@@ -945,6 +955,7 @@ export async function parseCambridgeSpreadsheet(file: File): Promise<ParseCambri
   const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, { defval: '' });
 
   const records: CambridgeExamRecord[] = [];
+  const parsedRows: Array<{ record: CambridgeExamRecord; rowNumber: number }> = [];
   const issues: ParseIssue[] = preflightIssues.map((issue) => ({ rowNumber: issue.rowNumber, message: issue.message }));
 
   rows.forEach((row, index) => {
@@ -952,9 +963,12 @@ export async function parseCambridgeSpreadsheet(file: File): Promise<ParseCambri
     const { record, issues: rowIssues } = parseRowToRecord(row, rowNumber);
     if (record) {
       records.push(record);
+      parsedRows.push({ record, rowNumber });
     }
     issues.push(...rowIssues);
   });
+
+  issues.push(...buildDuplicateRecordIssues(parsedRows));
 
   return { records, issues };
 }

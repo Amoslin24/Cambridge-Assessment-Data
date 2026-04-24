@@ -3,8 +3,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 
+interface PracticeQuestion {
+  level: string;
+  skill: string;
+  content: string;
+  options: string[] | string;
+  correct_answer: string;
+  explanation: string;
+}
+
 export default function PracticePage() {
-  const [question, setQuestion] = useState<any>(null);
+  const [question, setQuestion] = useState<PracticeQuestion | null>(null);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showResult, setShowResult] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -22,7 +31,8 @@ export default function PracticePage() {
   if (loading) return <div className="p-10 text-center">Loading Valruna Challenges...</div>;
   if (!question) return <div className="p-10 text-center">No questions found.</div>;
 
-  const options = typeof question.options === 'string' ? JSON.parse(question.options) : question.options;
+  const options =
+    typeof question.options === 'string' ? (JSON.parse(question.options) as string[]) : question.options;
 
   const handleCheck = (option: string) => {
     if (showResult) return; // 如果已经出结果了，就不让再点了

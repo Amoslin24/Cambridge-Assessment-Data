@@ -31,6 +31,11 @@ body {
     display: none !important;
   }
 
+  /* 学生画像卡：导出/打印时隐藏「口径」说明行，网页仍显示 */
+  .portrait-caliber-note {
+    display: none !important;
+  }
+
   body * {
     visibility: hidden;
   }

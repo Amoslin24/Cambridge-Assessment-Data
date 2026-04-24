@@ -33,6 +33,7 @@ import { ImportIssueSummaryCard } from '@/components/home/ImportIssueSummaryCard
 import { ImportIssuesSection } from '@/components/home/ImportIssuesSection';
 import { ImportLoadingBanner } from '@/components/home/ImportLoadingBanner';
 import { ImportRecordsPreview } from '@/components/home/ImportRecordsPreview';
+import { ImportRuntimeStatusCard } from '@/components/home/ImportRuntimeStatusCard';
 import { ImportTemplateCard } from '@/components/home/ImportTemplateCard';
 import { ImportTemplateLinks } from '@/components/home/ImportTemplateLinks';
 import { ImportUploadSection } from '@/components/home/ImportUploadSection';
@@ -69,12 +70,11 @@ export default function Home(): JSX.Element {
 
   const summaryText = useMemo((): string => {
     if (!fileName) {
-      return tr('尚未导入文件。', 'No file imported yet.');
+      return locale === 'zh' ? '尚未导入文件。' : 'No file imported yet.';
     }
-    return tr(
-      `已解析文件：${fileName}，有效记录 ${records.length} 条，异常 ${issues.length} 条。`,
-      `Parsed file: ${fileName}. Valid records: ${records.length}, issues: ${issues.length}.`,
-    );
+    return locale === 'zh'
+      ? `已解析文件：${fileName}，有效记录 ${records.length} 条，异常 ${issues.length} 条。`
+      : `Parsed file: ${fileName}. Valid records: ${records.length}, issues: ${issues.length}.`;
   }, [fileName, records.length, issues.length, locale]);
 
   const savedAtText = useMemo((): string => {
@@ -85,7 +85,7 @@ export default function Home(): JSX.Element {
     if (Number.isNaN(date.getTime())) {
       return '';
     }
-    return tr(`本地保存时间：${date.toLocaleString('zh-CN')}`, `Saved at: ${date.toLocaleString('en-US')}`);
+    return locale === 'zh' ? `本地保存时间：${date.toLocaleString('zh-CN')}` : `Saved at: ${date.toLocaleString('en-US')}`;
   }, [savedAt, locale]);
 
   const levelOptions = useMemo((): string[] => {
@@ -139,10 +139,9 @@ export default function Home(): JSX.Element {
   }, [filteredRecords]);
 
   const filteredSummaryText = useMemo((): string => {
-    return tr(
-      `筛选后 ${filteredRecords.length} 条 / 总计 ${records.length} 条。`,
-      `Filtered ${filteredRecords.length} / total ${records.length}.`,
-    );
+    return locale === 'zh'
+      ? `筛选后 ${filteredRecords.length} 条 / 总计 ${records.length} 条。`
+      : `Filtered ${filteredRecords.length} / total ${records.length}.`;
   }, [filteredRecords.length, records.length, locale]);
 
   function computeIssueDeltaMessage(previousIssueCount: number, nextIssueCount: number): string {
@@ -183,6 +182,12 @@ export default function Home(): JSX.Element {
     if (filter === 'NEGATIVE') {
       return 'Negative values';
     }
+    if (filter === 'MISSING_FIELD') {
+      return 'Missing fields';
+    }
+    if (filter === 'DUPLICATE_RECORD') {
+      return 'Duplicate records';
+    }
     return 'All issues';
   }
 
@@ -202,15 +207,15 @@ export default function Home(): JSX.Element {
 
   const issueDeltaText = useMemo((): string => {
     if (issueDelta === null) {
-      return tr('暂无对比', 'No comparison');
+      return locale === 'zh' ? '暂无对比' : 'No comparison';
     }
     if (issueDelta < 0) {
-      return tr(`减少 ${Math.abs(issueDelta)} 条`, `-${Math.abs(issueDelta)}`);
+      return locale === 'zh' ? `减少 ${Math.abs(issueDelta)} 条` : `-${Math.abs(issueDelta)}`;
     }
     if (issueDelta > 0) {
-      return tr(`新增 ${issueDelta} 条`, `+${issueDelta}`);
+      return locale === 'zh' ? `新增 ${issueDelta} 条` : `+${issueDelta}`;
     }
-    return tr('无变化', 'No change');
+    return locale === 'zh' ? '无变化' : 'No change';
   }, [issueDelta, locale]);
 
   useEffect((): void => {
@@ -681,6 +686,14 @@ export default function Home(): JSX.Element {
           </div>
 
           <div className="mt-8 space-y-4">
+            <ImportRuntimeStatusCard
+              locale={locale}
+              fileName={fileName}
+              recordsCount={records.length}
+              issuesCount={issues.length}
+              filteredIssuesCount={filteredIssues.length}
+              hasActiveIssueFilter={activeIssueFilter !== 'ALL'}
+            />
             <ImportUploadSection
               locale={locale}
               summaryText={summaryText}
@@ -751,6 +764,8 @@ export default function Home(): JSX.Element {
                 overLimitWritingCount={issueSummary.overLimitWritingCount}
                 nonNumericCount={issueSummary.nonNumericCount}
                 negativeCount={issueSummary.negativeCount}
+                missingFieldCount={issueSummary.missingFieldCount}
+                duplicateRecordCount={issueSummary.duplicateRecordCount}
                 affectedRowCount={issueSummary.affectedRowCount}
                 issueDeltaText={issueDeltaText}
                 activeFilter={activeIssueFilter}
