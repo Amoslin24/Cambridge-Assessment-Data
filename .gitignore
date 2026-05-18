@@ -20,6 +20,12 @@
 # production
 /build
 
+# KET 真题 PDF/导出页（本地归档，勿提交仓库）
+/data/ket/r-p1/pdf/*.pdf
+/data/ket/r-p1/pdf/*.png
+/data/ket/r-p2/pdf/*.pdf
+/data/ket/r-p2/pdf/*.png
+
 # misc
 .DS_Store
 *.pem

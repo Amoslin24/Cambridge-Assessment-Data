@@ -1,0 +1,78 @@
+{
+  "part_key": "R_P2",
+  "task_type": "matching",
+  "title_zh": "2025 KET 校园版真题 3 · 第 1 套 · 阅读 Part 2（B3T1）",
+  "source_label": "个人教研使用 · Cambridge KET 真题 3 Test 1 Part 2",
+  "pdf_ref": "B3T1-set1-r-p2-pages-3-4.pdf",
+  "sort_order": 10,
+  "is_published": true,
+  "topic_title": "Studying a foreign language",
+  "topic_subtitle": "Three teenagers talk about learning a new language",
+  "people": [
+    {
+      "id": "frank",
+      "name": "Frank",
+      "column_letter": "A",
+      "initials": "F",
+      "paragraph": "At the moment, I'm learning Arabic because I'd like to be a journalist one day, and being able to speak other languages is important for this job. It wasn't possible to learn Arabic at school, but a friend of mine knew a woman who could give me lessons and now she comes to my house twice a week. It was difficult at first because I was a complete beginner. But I worked hard and after just six months I was able to speak and write the language quite well, which I'm really happy about."
+    },
+    {
+      "id": "marc",
+      "name": "Marc",
+      "column_letter": "B",
+      "initials": "M",
+      "paragraph": "I've lived in lots of different countries because of my dad's career, so I've had to learn several different languages. I seem to learn them quite easily. The last place I lived was Thailand. I'm still studying the language so I can continue to chat with my Thai classmates now I'm back in my home country. I've downloaded a new app with exercises in Thai, and I can't wait to use it each morning because it's so much fun."
+    },
+    {
+      "id": "ivan",
+      "name": "Ivan",
+      "column_letter": "C",
+      "initials": "I",
+      "paragraph": "My mum comes from Russia and her parents still live there. We often stay with them during the school holidays, but unfortunately I didn't learn Russian when I was little so talking to them has always been hard. After our last trip I decided it was time for me to learn the language and I found a course at my local college – we work hard but the teacher makes us laugh. I think that's why I never forget any of the vocabulary she teaches us."
+    }
+  ],
+  "questions": [
+    {
+      "exam_number": 7,
+      "question": "Who says he's pleased about how quickly he improved?",
+      "correct_person_id": "frank",
+      "explanation_zh": "Frank 提到六个月即可较好读写阿拉伯语，并对此非常高兴。"
+    },
+    {
+      "exam_number": 8,
+      "question": "Who is learning a foreign language without a teacher?",
+      "correct_person_id": "marc",
+      "explanation_zh": "Marc 使用 App 自学泰语，未提及老师授课。"
+    },
+    {
+      "exam_number": 9,
+      "question": "Who needs to know a foreign language for the career he wants?",
+      "correct_person_id": "frank",
+      "explanation_zh": "Frank 想学阿拉伯语是因为希望成为记者。"
+    },
+    {
+      "exam_number": 10,
+      "question": "Who says he remembers all the new words he learns in his language lessons?",
+      "correct_person_id": "ivan",
+      "explanation_zh": "Ivan 表示老师有趣，因此从不忘记所学词汇。"
+    },
+    {
+      "exam_number": 11,
+      "question": "Who is practising a language so he can have conversations with friends?",
+      "correct_person_id": "marc",
+      "explanation_zh": "Marc 继续学泰语以便与泰国同学聊天。"
+    },
+    {
+      "exam_number": 12,
+      "question": "Who is studying a foreign language for family reasons?",
+      "correct_person_id": "ivan",
+      "explanation_zh": "Ivan 因母亲来自俄罗斯、需与祖辈沟通而学习俄语。"
+    },
+    {
+      "exam_number": 13,
+      "question": "Who says he has lots of experience learning new languages?",
+      "correct_person_id": "marc",
+      "explanation_zh": "Marc 因父亲职业在多国生活，学过多种语言且学得较快。"
+    }
+  ]
+}

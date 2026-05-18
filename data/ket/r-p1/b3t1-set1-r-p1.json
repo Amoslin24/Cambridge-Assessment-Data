@@ -1,0 +1,115 @@
+{
+  "title_zh": "2025 KET 校园版真题 3 · 第 1 套 · 阅读 Part 1（B3T1）",
+  "source_label": "个人教研使用 · Cambridge KET 真题 3 Test 1 Part 1",
+  "pdf_ref": "B3T1-Part1.pdf",
+  "sort_order": 10,
+  "is_published": true,
+  "items": [
+    {
+      "order_index": 1,
+      "prompt": {
+        "variant": "note",
+        "lines": [
+          "Bored with computer games?",
+          "Looking for a different hobby?",
+          "**Join us at chess club!**",
+          "Fridays @ 16.00 in room 16."
+        ]
+      },
+      "question": "The club wants to find people who",
+      "options": [
+        "like playing a variety of games.",
+        "are interested in trying something new.",
+        "have experience of playing computer chess."
+      ],
+      "correct_answer": "are interested in trying something new.",
+      "explanation_zh": "告示针对厌倦电脑游戏、想换爱好的人，国际象棋俱乐部属于「尝试新事物」。"
+    },
+    {
+      "order_index": 2,
+      "prompt": {
+        "variant": "phone_sms",
+        "contactName": "Zoe",
+        "time": "08:21",
+        "message": "Have you got an extra T-shirt I can borrow for gym class? I've forgotten mine and it's too late to go back home.",
+        "senderName": "Tilda"
+      },
+      "question": "Why has Tilda sent this message?",
+      "options": [
+        "to find out if Zoe is able to lend her something",
+        "to ask if Zoe can collect something from the gym",
+        "to check if Zoe has remembered to bring the right sports kit"
+      ],
+      "correct_answer": "to find out if Zoe is able to lend her something",
+      "explanation_zh": "核心信息是 forgotten mine 与 borrow an extra T-shirt，意在借一件运动衫。"
+    },
+    {
+      "order_index": 3,
+      "prompt": {
+        "variant": "sign",
+        "headline": "BREAD ISN'T GOOD FOR DUCKS!",
+        "subline": "Bird food available at visitor centre £1 per bag"
+      },
+      "question": "What is this sign saying?",
+      "options": [
+        "Bird food costs less at the visitor centre than at other places.",
+        "The visitor centre wants more people to give food to the ducks.",
+        "Visitors must be careful about the kind of food they give to the ducks."
+      ],
+      "correct_answer": "Visitors must be careful about the kind of food they give to the ducks.",
+      "explanation_zh": "告示强调面包不宜喂鸭，应使用游客中心出售的专用鸟食。"
+    },
+    {
+      "order_index": 4,
+      "prompt": {
+        "variant": "email",
+        "to": "Josh",
+        "from": "Ms Wilson",
+        "body": "Sorry to hear you're not well. If you aren't able to play in the big match next week, let me know soon."
+      },
+      "question": "What is Ms Wilson saying to Josh?",
+      "options": [
+        "I'm afraid I haven't decided if you can take part in the competition yet.",
+        "It's a shame you missed the last match, but I'm glad you're feeling better.",
+        "You must contact me if your health doesn't improve over the next few days."
+      ],
+      "correct_answer": "You must contact me if your health doesn't improve over the next few days.",
+      "explanation_zh": "邮件要求若下周大赛无法出场须尽快告知。"
+    },
+    {
+      "order_index": 5,
+      "prompt": {
+        "variant": "phone_sms",
+        "contactName": "Mum",
+        "message": "The 4 p.m. bus is delayed and won't arrive for another hour. If I can't get a lift with anyone, I'll walk home.",
+        "senderName": "Eric"
+      },
+      "question": "Why has Eric sent his mum this message?",
+      "options": [
+        "to explain why he missed the bus",
+        "to tell her his plans for getting home",
+        "to find out if she can give him a lift"
+      ],
+      "correct_answer": "to tell her his plans for getting home",
+      "explanation_zh": "说明公交延误及可能步行回家，属于告知回家安排。"
+    },
+    {
+      "order_index": 6,
+      "prompt": {
+        "variant": "email",
+        "to": "All students",
+        "from": "Mrs Brown",
+        "subject": "Theatre trip",
+        "body": "Anyone who's already on the list for this trip but hasn't paid, please give me £15.00 by 3 p.m."
+      },
+      "question": "What is this email saying?",
+      "options": [
+        "There are a few spaces left if anyone wants to go on the trip.",
+        "If you've got a place on the trip, you need to pay today.",
+        "Students who have paid for the trip should come to a meeting at 3 p.m."
+      ],
+      "correct_answer": "If you've got a place on the trip, you need to pay today.",
+      "explanation_zh": "已在名单但未付款者须在下午 3 点前缴费。"
+    }
+  ]
+}

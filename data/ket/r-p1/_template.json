@@ -1,0 +1,55 @@
+{
+  "title_zh": "20XX 年 XX 月真题 · 阅读 Part 1",
+  "source_label": "机构内部授权 · 请勿外传",
+  "pdf_ref": "存放于 data/ket/r-p1/pdf/ 的文件名，例如 ket-2024-test1-rp1.pdf",
+  "sort_order": 100,
+  "is_published": false,
+  "items": [
+    {
+      "order_index": 1,
+      "stem": "从 PDF 第 1 题抄写：短讯/告示正文 + 问题句（可用 \\n 换行）\n\n示例：\nYou see this notice at school:\n\n\"...\"\n\nWhat should students do?",
+      "options": [
+        "选项 A 全文（与试卷一致）",
+        "选项 B 全文",
+        "选项 C 全文"
+      ],
+      "correct_answer": "选项 B 全文（必须与 options 中某一项完全一致）",
+      "explanation_zh": "中文解析：考点、原文依据、干扰项为何错误"
+    },
+    {
+      "order_index": 2,
+      "stem": "第 2 题…",
+      "options": ["…", "…", "…"],
+      "correct_answer": "…",
+      "explanation_zh": "…"
+    },
+    {
+      "order_index": 3,
+      "stem": "第 3 题…",
+      "options": ["…", "…", "…"],
+      "correct_answer": "…",
+      "explanation_zh": "…"
+    },
+    {
+      "order_index": 4,
+      "stem": "第 4 题…",
+      "options": ["…", "…", "…"],
+      "correct_answer": "…",
+      "explanation_zh": "…"
+    },
+    {
+      "order_index": 5,
+      "stem": "第 5 题…",
+      "options": ["…", "…", "…"],
+      "correct_answer": "…",
+      "explanation_zh": "…"
+    },
+    {
+      "order_index": 6,
+      "stem": "第 6 题…",
+      "options": ["…", "…", "…"],
+      "correct_answer": "…",
+      "explanation_zh": "…"
+    }
+  ]
+}

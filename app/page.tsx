@@ -676,12 +676,18 @@ export default function Home(): JSX.Element {
               'Supports CSV/Excel (.xlsx/.xls) upload with automatic level detection, atomic part parsing, and score conversion.',
             )}
           </p>
-          <div className="mt-4">
+          <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/analysis"
               className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:border-blue-700 hover:text-blue-700 transition-colors"
             >
               {tr('进入数据分析页', 'Go to analysis')}
+            </Link>
+            <Link
+              href="/ket"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-700 hover:bg-blue-100 transition-colors"
+            >
+              {tr('KET 备考练习', 'KET exam practice')}
             </Link>
           </div>
 
