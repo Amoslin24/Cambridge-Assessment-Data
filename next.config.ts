@@ -1,8 +1,8 @@
 import type { NextConfig } from "next";
 
-/** GitHub Pages 项目页：https://<user>.github.io/valruna-app/ */
+/** GitHub Pages 项目页：https://amoslin24.github.io/Cambridge-Assessment-Data/ */
 const githubPages = process.env.GITHUB_PAGES === "true";
-const basePath = githubPages ? "/valruna-app" : "";
+const basePath = githubPages ? "/Cambridge-Assessment-Data" : "";
 
 const nextConfig: NextConfig = {
   basePath,

@@ -1,5 +1,5 @@
 # Cambridge 数据分析面板 + 导入/诊断等（Next.js 静态导出 → GitHub Pages）
-# 站点地址：https://<github_user>.github.io/valruna-app/
+# 站点地址：https://amoslin24.github.io/Cambridge-Assessment-Data/
 name: Deploy Valruna to GitHub Pages
 
 on:

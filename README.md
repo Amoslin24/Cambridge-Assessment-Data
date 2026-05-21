@@ -83,23 +83,21 @@ Next.js（App Router）、React、TypeScript、Tailwind CSS、Recharts、`xlsx`�
 
 ## 发布到 GitHub Pages（公网访问）
 
-仓库名建议为 **`valruna-app`**，启用后访问：
+仓库：**[Cambridge-Assessment-Data](https://github.com/Amoslin24/Cambridge-Assessment-Data)**。启用 Pages 后访问：
 
 | 页面 | 地址 |
 |------|------|
-| 导入首页 | `https://<你的GitHub用户名>.github.io/valruna-app/` |
-| **数据分析面板** | `https://<你的GitHub用户名>.github.io/valruna-app/analysis/` |
-| 诊断页 | `https://<你的GitHub用户名>.github.io/valruna-app/diagnosis/` |
+| 导入首页 | `https://amoslin24.github.io/Cambridge-Assessment-Data/` |
+| **数据分析面板** | `https://amoslin24.github.io/Cambridge-Assessment-Data/analysis/` |
+| 诊断页 | `https://amoslin24.github.io/Cambridge-Assessment-Data/diagnosis/` |
 
 ### 一次性设置
 
-1. 在 GitHub 新建仓库（例如 `valruna-app`），**不要**勾选「用 README 初始化」（若已初始化，首次推送用 `git pull --rebase` 合并）。
-2. 在本机项目根目录关联远程并推送 `main`：
+1. 远程仓库：`https://github.com/Amoslin24/Cambridge-Assessment-Data`
+2. 在本机项目根目录推送 `main`：
 
    ```bash
-   git remote add origin https://github.com/<你的用户名>/valruna-app.git
-   git add .
-   git commit -m "chore: GitHub Pages 部署 Cambridge 面板"
+   git remote add origin https://github.com/Amoslin24/Cambridge-Assessment-Data.git
    git push -u origin main
    ```
 
