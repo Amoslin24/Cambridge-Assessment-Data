@@ -391,6 +391,13 @@ export function AnalysisStudentPortraitPanel(props: AnalysisStudentPortraitPanel
                 {studentProfile.suggestion}
               </p>
             </div>
+
+            <div className="mt-3 rounded-2xl border border-indigo-200 bg-indigo-50/50 p-4">
+              <div className="text-sm font-semibold text-slate-900">{tr('下一步备课建议', 'Next Lesson Planning Suggestion')}</div>
+              <p className="mt-2 text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {studentProfile.nextLessonPlanSuggestion}
+              </p>
+            </div>
           </div>
         </div>
       )}

@@ -1,0 +1,8 @@
+# 可选：Netlify 镜像（国内有时比 Vercel 更易打开）
+[build]
+  publish = "hai-si-site"
+
+[[redirects]]
+  from = "/hai-si"
+  to = "/index.html"
+  status = 200

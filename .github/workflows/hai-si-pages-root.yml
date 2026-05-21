@@ -1,0 +1,37 @@
+# 专用「闯关」仓库用：静态文件在仓库根目录（index.html 在 / 而不是 /hai-si-site/）
+name: Deploy Hai-Si Pages (root)
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'index.html'
+      - 'qrcode.html'
+      - 'vendor/**'
+      - 'mirror-config.js'
+      - '.github/workflows/hai-si-pages-root.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: hai-si-pages-root
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+      - id: deployment
+        uses: actions/deploy-pages@v4

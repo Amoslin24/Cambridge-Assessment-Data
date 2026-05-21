@@ -1,7 +1,7 @@
 'use client'; // 告诉网页：这是一个可以点击交互的页面
 
 import { useEffect, useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { getSupabaseBrowserClient } from '@/lib/supabase';
 
 interface PracticeQuestion {
   level: string;
@@ -21,6 +21,11 @@ export default function PracticePage() {
   // 页面加载时去数据库拿题
   useEffect(() => {
     async function fetchQuestion() {
+      const supabase = getSupabaseBrowserClient();
+      if (!supabase) {
+        setLoading(false);
+        return;
+      }
       const { data } = await supabase.from('questions').select('*').limit(1);
       if (data && data.length > 0) setQuestion(data[0]);
       setLoading(false);

@@ -28,7 +28,9 @@ import {
   type ParseIssue,
 } from '@/lib/cambridgeEngine';
 import {
+  buildSetLessonPlanSummary,
   buildImprovementSuggestion,
+  buildNextLessonPlanSuggestion,
   buildProgressMetrics,
   buildSkillRadarData,
   formatDateForInput,
@@ -409,6 +411,72 @@ export default function AnalysisPage(): JSX.Element {
 
   const warningRows = useMemo((): WarningRow[] => buildWarningRows(filteredRecords, locale), [filteredRecords, locale]);
 
+  const setLessonPlanSummary = useMemo((): string => {
+    const latestPerStudent = pickLatestRecordPerStudent(filteredRecords);
+    const weakSkillCounts = new Map<string, number>();
+    const attentionSkillCounts = new Map<string, number>();
+    const weakPartCounts = new Map<string, number>();
+    const attentionPartCounts = new Map<string, number>();
+    let weakStudentCount = 0;
+    let attentionStudentCount = 0;
+
+    latestPerStudent.forEach((record) => {
+      const details = buildSkillDetails(record);
+      const weakSkills = pickWeakSkillsByThreshold(record, details);
+      const attentionSkills = pickAttentionSkillsByThreshold(record, details);
+      const partThresholds = partitionPartsByThreshold(record, details);
+
+      if (weakSkills.length > 0) {
+        weakStudentCount += 1;
+      }
+      if (attentionSkills.length > 0) {
+        attentionStudentCount += 1;
+      }
+
+      weakSkills.forEach((item) => {
+        weakSkillCounts.set(item.skill, (weakSkillCounts.get(item.skill) ?? 0) + 1);
+      });
+      attentionSkills.forEach((item) => {
+        attentionSkillCounts.set(item.skill, (attentionSkillCounts.get(item.skill) ?? 0) + 1);
+      });
+      partThresholds.weakBySkill.forEach((group) => {
+        group.parts.forEach((part) => {
+          weakPartCounts.set(part.part, (weakPartCounts.get(part.part) ?? 0) + 1);
+        });
+      });
+      partThresholds.attentionBySkill.forEach((group) => {
+        group.parts.forEach((part) => {
+          attentionPartCounts.set(part.part, (attentionPartCounts.get(part.part) ?? 0) + 1);
+        });
+      });
+    });
+
+    const pickTopKey = (map: Map<string, number>): string | null =>
+      Array.from(map.entries()).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0] ?? null;
+    const pickTopKeys = (map: Map<string, number>, topN: number): string[] =>
+      Array.from(map.entries())
+        .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+        .slice(0, topN)
+        .map((item) => item[0]);
+
+    const setName =
+      selectedSet !== 'ALL'
+        ? `${tr('组别 ', 'Set ')}${selectedSet}`
+        : tr('当前筛选范围（全部组别）', 'Current filtered scope (all sets)');
+
+    return buildSetLessonPlanSummary({
+      setName,
+      totalStudents: latestPerStudent.length,
+      weakStudentCount,
+      attentionStudentCount,
+      topWeakSkill: pickTopKey(weakSkillCounts),
+      topAttentionSkill: pickTopKey(attentionSkillCounts),
+      topWeakParts: pickTopKeys(weakPartCounts, 3),
+      topAttentionParts: pickTopKeys(attentionPartCounts, 3),
+      locale,
+    });
+  }, [filteredRecords, selectedSet, locale]);
+
   const warningGroups = useMemo(
     (): {
       declinedStudents: WarningStudentItem[];
@@ -614,6 +682,13 @@ export default function AnalysisPage(): JSX.Element {
       SKILL_LIBRARY_MAP,
       locale,
     );
+    const nextLessonPlanSuggestion = buildNextLessonPlanSuggestion(
+      latestRecord,
+      weakSkills,
+      attentionSkills,
+      partThresholds,
+      locale,
+    );
     return {
       record: latestRecord,
       details,
@@ -623,6 +698,7 @@ export default function AnalysisPage(): JSX.Element {
       progress: buildProgressMetrics(filteredRecords, locale),
       radarData,
       suggestion,
+      nextLessonPlanSuggestion,
     };
   }, [latestRecord, filteredRecords, locale]);
 
@@ -809,7 +885,7 @@ export default function AnalysisPage(): JSX.Element {
         logging: false,
         backgroundColor: '#ffffff',
         scrollY: -window.scrollY,
-        onClone(clonedDoc): void {
+        onclone(clonedDoc): void {
           clonedDoc.querySelectorAll('.portrait-caliber-note').forEach((node) => {
             node.parentElement?.removeChild(node);
           });
@@ -1127,6 +1203,15 @@ export default function AnalysisPage(): JSX.Element {
                     convertedTotalDistribution={convertedTotalDistribution}
                     classPartMeansByContext={classPartMeansByContext}
                   />
+
+                  <div className="mt-6 rounded-2xl border border-indigo-200 bg-indigo-50/60 p-5">
+                    <div className="text-base font-bold text-slate-900">
+                      {tr('SET 备课计划（基于当前筛选）', 'SET Lesson Plan (based on current filters)')}
+                    </div>
+                    <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-slate-700">
+                      {setLessonPlanSummary}
+                    </p>
+                  </div>
 
                   <AnalysisEarlyWarningPanel
                     locale={locale}

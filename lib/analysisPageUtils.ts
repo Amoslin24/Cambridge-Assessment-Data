@@ -609,6 +609,109 @@ export function buildImprovementSuggestion(
   return suggestions.join('\n\n');
 }
 
+export function buildNextLessonPlanSuggestion(
+  record: CambridgeExamRecord,
+  weakSkills: Array<{ skill: string; converted: number; rawTotal: number; maxTotal: number; strength: SkillStrength }>,
+  attentionSkills: Array<{ skill: string; converted: number; rawTotal: number; maxTotal: number; strength: SkillStrength }>,
+  partitioned: PartThresholdPartition,
+  locale: UiLocale = 'zh',
+): string {
+  const targetSkill = weakSkills[0]?.skill ?? attentionSkills[0]?.skill;
+  const weakParts = partitioned.weakBySkill.flatMap((group) => group.parts.map((item) => item.part));
+  const attentionParts = partitioned.attentionBySkill.flatMap((group) => group.parts.map((item) => item.part));
+  const selectedParts = (weakParts.length > 0 ? weakParts : attentionParts).slice(0, 3);
+  const partText = selectedParts.length > 0 ? selectedParts.join('、') : tr(locale, '当前主要薄弱题段', 'current key weak parts');
+  const modeText =
+    record.convertedResult.mode === 'YLE_SHIELDS'
+      ? tr(locale, '盾牌表现', 'shield performance')
+      : tr(locale, '分技能正确率', 'skill accuracy');
+  const riskLevel = weakSkills.length > 0 ? tr(locale, '优先干预', 'high-priority intervention') : tr(locale, '重点巩固', 'focused consolidation');
+
+  if (!targetSkill) {
+    return tr(
+      locale,
+      [
+        '【下一步备课建议】',
+        '1) 本周维持现有教学节奏，继续执行“讲解-练习-复盘”闭环。',
+        '2) 下次随堂测建议抽取 1-2 个核心题型进行稳定性检查，重点观察审题与作答规范。',
+        '3) 作业建议采用“基础巩固 + 反思记录”结构，确保学生能说明错因与改进动作。',
+      ].join('\n'),
+      [
+        '[Next Lesson Plan Suggestion]',
+        '1) Keep the current teaching pace and continue the explain-practice-review loop this week.',
+        '2) In the next in-class quiz, sample 1-2 key item types to check stability in task reading and response discipline.',
+        '3) Use a homework structure of baseline consolidation + reflection log to ensure students can explain error causes and improvement actions.',
+      ].join('\n'),
+    );
+  }
+
+  return tr(
+    locale,
+    [
+      '【下一步备课建议】',
+      `1) 本周目标：将「${targetSkill}」设为单周主目标（${riskLevel}），课堂评价以${modeText}提升为核心。`,
+      `2) 课堂结构：建议采用“5 分钟策略示范 + 10 分钟分层练习 + 5 分钟错因复盘”，优先覆盖 ${partText}。`,
+      '3) 分层任务：基础组先做保底题并强调步骤规范，提升组增加同题型变式与限时训练。',
+      '4) 作业配置：每次作业控制在 10-15 分钟，保留错因标签（审题/定位/语法/拼写），次日用 3 分钟做回顾。',
+      '5) 周末验收：用同题型小测复查本周目标，建议达成线为正确率稳定到 70% 左右（YLE 可参考 3 盾以上）。',
+    ].join('\n'),
+    [
+      '[Next Lesson Plan Suggestion]',
+      `1) Weekly target: set "${targetSkill}" as the single weekly focus (${riskLevel}), and evaluate progress primarily through ${modeText}.`,
+      `2) Lesson structure: use a "5-min strategy demo + 10-min differentiated drill + 5-min error review" flow, covering ${partText} first.`,
+      '3) Differentiation: baseline group secures core items with procedural discipline; advanced group adds item variants and timed practice.',
+      '4) Homework: keep each assignment within 10-15 minutes, tag error types (task reading/location/grammar/spelling), and run a 3-minute next-day recap.',
+      '5) Weekly check: run a same-type mini quiz; target around 70% stable accuracy (for YLE, benchmark 3+ shields).',
+    ].join('\n'),
+  );
+}
+
+interface SetLessonPlanSummaryInput {
+  setName: string;
+  totalStudents: number;
+  weakStudentCount: number;
+  attentionStudentCount: number;
+  topWeakSkill: string | null;
+  topAttentionSkill: string | null;
+  topWeakParts: string[];
+  topAttentionParts: string[];
+  locale?: UiLocale;
+}
+
+export function buildSetLessonPlanSummary(input: SetLessonPlanSummaryInput): string {
+  const locale = input.locale ?? 'zh';
+  const topWeakPartsText = input.topWeakParts.length > 0 ? input.topWeakParts.join('、') : tr(locale, '暂无集中薄弱题段', 'no concentrated weak parts');
+  const topAttentionPartsText = input.topAttentionParts.length > 0
+    ? input.topAttentionParts.join('、')
+    : tr(locale, '暂无集中关注题段', 'no concentrated attention parts');
+  const weakSkillText = input.topWeakSkill ?? tr(locale, '暂无明确薄弱技能', 'no clear weak skill');
+  const attentionSkillText = input.topAttentionSkill ?? tr(locale, '暂无明确关注技能', 'no clear attention skill');
+
+  return tr(
+    locale,
+    [
+      `【SET 备课计划】${input.setName}`,
+      `1) 班组现状：当前样本 ${input.totalStudents} 人，其中高风险（P0）约 ${input.weakStudentCount} 人，需关注（P2）约 ${input.attentionStudentCount} 人。`,
+      `2) 本周主目标：优先处理「${weakSkillText}」，同步巩固「${attentionSkillText}」。`,
+      `3) 课堂安排建议：采用“5 分钟策略讲解 + 10 分钟分层练习 + 5 分钟错因复盘”结构，重点覆盖 ${topWeakPartsText}。`,
+      '4) 分层任务建议：',
+      '· 高风险学生：保底题型反复操练，强调审题步骤与作答规范；',
+      '· 需关注学生：同题型变式训练，重点防止正确率回落。',
+      `5) 作业与验收：作业围绕 ${topAttentionPartsText} 配置 10-15 分钟微练；周末用同题型小测复查，目标为整体正确率稳定向 70% 靠拢（YLE 可参考 3 盾以上）。`,
+    ].join('\n'),
+    [
+      `[SET Lesson Plan] ${input.setName}`,
+      `1) Cohort status: ${input.totalStudents} students in scope, with about ${input.weakStudentCount} high-risk (P0) and ${input.attentionStudentCount} attention (P2).`,
+      `2) Weekly focus: prioritize "${weakSkillText}" while consolidating "${attentionSkillText}".`,
+      `3) Lesson flow: use a "5-min strategy demo + 10-min differentiated drill + 5-min error review", focusing on ${topWeakPartsText}.`,
+      '4) Differentiated tasks:',
+      '· High-risk students: repeated baseline item training with strict task-reading and response procedures;',
+      '· Attention students: variant drills of the same item types to prevent score drop.',
+      `5) Homework and check: assign 10-15 min micro drills around ${topAttentionPartsText}; use a same-type mini quiz at week end and target stable movement toward 70% accuracy (for YLE, benchmark 3+ shields).`,
+    ].join('\n'),
+  );
+}
+
 function computeStdDev(values: number[]): number {
   if (values.length <= 1) {
     return 0;

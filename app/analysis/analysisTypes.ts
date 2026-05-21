@@ -23,4 +23,5 @@ export interface AnalysisStudentProfileData {
   progress: ProgressMetrics | null;
   radarData: Array<{ skill: string; converted: number; fullMark: number }>;
   suggestion: string;
+  nextLessonPlanSuggestion: string;
 }
