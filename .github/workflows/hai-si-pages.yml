@@ -1,11 +1,6 @@
 name: Deploy Hai-Si China Mirror
 
 on:
-  push:
-    branches: [main, master]
-    paths:
-      - 'hai-si-site/**'
-      - '.github/workflows/hai-si-pages.yml'
   workflow_dispatch:
 
 permissions:

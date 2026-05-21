@@ -7,7 +7,9 @@ import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = path.resolve(import.meta.dirname, '..');
+import { fileURLToPath } from 'node:url';
+
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const stashRoot = path.join(root, '.pages-build-stash');
 const stashPaths = ['app/api', 'app/ket/practice'];
 
