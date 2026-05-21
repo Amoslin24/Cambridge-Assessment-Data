@@ -81,6 +81,40 @@ npm run start
 
 Next.js（App Router）、React、TypeScript、Tailwind CSS、Recharts、`xlsx`、html2canvas（画像 PNG 导出）。字体由 Next 的 `next/font` 加载（构建时需能访问 Google Fonts，否则请检查网络或字体配置）。
 
+## 发布到 GitHub Pages（公网访问）
+
+仓库名建议为 **`valruna-app`**，启用后访问：
+
+| 页面 | 地址 |
+|------|------|
+| 导入首页 | `https://<你的GitHub用户名>.github.io/valruna-app/` |
+| **数据分析面板** | `https://<你的GitHub用户名>.github.io/valruna-app/analysis/` |
+| 诊断页 | `https://<你的GitHub用户名>.github.io/valruna-app/diagnosis/` |
+
+### 一次性设置
+
+1. 在 GitHub 新建仓库（例如 `valruna-app`），**不要**勾选「用 README 初始化」（若已初始化，首次推送用 `git pull --rebase` 合并）。
+2. 在本机项目根目录关联远程并推送 `main`：
+
+   ```bash
+   git remote add origin https://github.com/<你的用户名>/valruna-app.git
+   git add .
+   git commit -m "chore: GitHub Pages 部署 Cambridge 面板"
+   git push -u origin main
+   ```
+
+3. 仓库 **Settings → Pages → Build and deployment** 选择 **GitHub Actions**。
+4. 推送后打开 **Actions**，等待 **Deploy Valruna to GitHub Pages** 工作流成功（约 2–5 分钟）。
+
+### 本地验证静态构建
+
+```bash
+npm run build:pages
+# 产物在 out/，可用 npx serve out -l 3207 预览（需带 basePath 时以 GitHub Pages 为准）
+```
+
+> **说明**：GitHub Pages 为纯静态托管，成绩数据仍在**各访问者浏览器本地**；`/api/*` 与 KET 动态练习路由不会出现在 Pages 构建中。完整服务端能力请继续用 `npm run build && npm run start` 或 Vercel。
+
 ## 许可与仓库
 
 私有项目；具体许可以仓库内 `LICENSE` 为准（若未添加则默认保留所有权利）。

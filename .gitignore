@@ -28,6 +28,8 @@
 
 # misc
 .DS_Store
+.pages-build-stash/
+.venv/
 *.pem
 
 # debug

@@ -1,0 +1,48 @@
+# Cambridge 数据分析面板 + 导入/诊断等（Next.js 静态导出 → GitHub Pages）
+# 站点地址：https://<github_user>.github.io/valruna-app/
+name: Deploy Valruna to GitHub Pages
+
+on:
+  push:
+    branches: [main, master]
+    paths-ignore:
+      - 'hai-si-site/**'
+      - '.github/workflows/hai-si-pages.yml'
+      - '.github/workflows/hai-si-pages-root.yml'
+      - '**/*.md'
+      - '.venv/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: valruna-github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+      - run: npm ci
+      - run: node scripts/build-github-pages.mjs
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

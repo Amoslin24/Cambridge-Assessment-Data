@@ -8,12 +8,14 @@
     "dev:local:clean": "sh -c 'kill -9 $(lsof -t -iTCP:3207 -sTCP:LISTEN) 2>/dev/null || true; rm -f .next/dev/lock; exec npm run dev:local'",
     "dev:lan": "WATCHPACK_POLLING=true next dev --hostname 0.0.0.0 --port 3207",
     "build": "next build",
+    "build:pages": "node scripts/build-github-pages.mjs",
     "start": "next start",
     "start:local": "next start --hostname 127.0.0.1 --port 3207",
     "health:local": "curl -sSf http://127.0.0.1:3207/ >/dev/null && echo \"OK: http://127.0.0.1:3207\"",
     "lint": "eslint",
     "test:engine": "node --experimental-strip-types tests/cambridgeEngine.test.ts",
-    "import:ket-r-p1": "node --env-file=.env.local scripts/import-ket-r-p1.mjs"
+    "import:ket-r-p1": "node --env-file=.env.local scripts/import-ket-r-p1.mjs",
+    "deploy:hai-si:gitee": "node scripts/deploy-hai-si-gitee.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
@@ -33,6 +35,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.1.6",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^54.2.0"
   }
 }
