@@ -14,11 +14,9 @@ elif hasattr(sys.stdout, "reconfigure"):
 load_dotenv() 
 
 # 初始化
-# 注意：如果 .env 没生效，请直接把 Key 填在下面引号里测试
-api_key = os.getenv("AIzaSyC8vkU4F1AUCk4PYEukor342etyRJOd0cY") 
+api_key = os.getenv("GEMINI_API_KEY")
 if not api_key:
-    # 如果没读取到环境变量，请手动填入你的 Key
-    api_key = "AIzaSyC8vkU4F1AUCk4PYEukor342etyRJOd0cY"
+    raise RuntimeError("请先在 .env 或环境变量中设置 GEMINI_API_KEY。")
 
 client = genai.Client(api_key=api_key)
 

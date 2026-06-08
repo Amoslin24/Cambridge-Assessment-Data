@@ -14,8 +14,7 @@
     "health:local": "curl -sSf http://127.0.0.1:3207/ >/dev/null && echo \"OK: http://127.0.0.1:3207\"",
     "lint": "eslint",
     "test:engine": "node --experimental-strip-types tests/cambridgeEngine.test.ts",
-    "import:ket-r-p1": "node --env-file=.env.local scripts/import-ket-r-p1.mjs",
-    "deploy:hai-si:gitee": "node scripts/deploy-hai-si-gitee.mjs"
+    "import:ket-r-p1": "node --env-file=.env.local scripts/import-ket-r-p1.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",

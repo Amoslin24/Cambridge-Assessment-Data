@@ -8,14 +8,14 @@ from supabase import create_client
 from google import genai  # 使用最新的 google-genai 库
 
 # --- 1. 配置信息 ---
-SUPABASE_URL = "https://rivljtpgfovklmnjjhvy.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJpdmxqdHBnZm92a2xtbmpqaHZ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzIwNzgyNzcsImV4cCI6MjA4NzY1NDI3N30.6q59dnIBCBKrFrSl9SSNklwHwxcOEqakdmD1wUAs0AA"
-GEMINI_API_KEY = "AIzaSyC8vkU4F1AUCk4PYEukor342etyRJOd0cY"
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_ANON_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY or not GEMINI_API_KEY:
+    raise RuntimeError("请先设置 SUPABASE_URL、SUPABASE_ANON_KEY、GEMINI_API_KEY 环境变量。")
 
 # 初始化客户端
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-client = genai.Client(api_key=GEMINI_API_KEY)
-
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 client = genai.Client(api_key=GEMINI_API_KEY)
 
