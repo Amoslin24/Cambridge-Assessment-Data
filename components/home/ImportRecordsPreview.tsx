@@ -1,6 +1,6 @@
 'use client';
 
-import type { JSX } from 'react';
+import { useState, type JSX } from 'react';
 import type { CambridgeExamRecord } from '@/lib/cambridgeEngine';
 import {
   getSkillRawScores,
@@ -19,6 +19,7 @@ export interface ImportRecordsPreviewProps {
 
 export function ImportRecordsPreview(props: ImportRecordsPreviewProps): JSX.Element {
   const { locale, showOnlyIssues, filteredRecords, recordsCount, levelCountText } = props;
+  const [visibleLimit, setVisibleLimit] = useState<number>(20);
 
   return (
     <>
@@ -29,8 +30,8 @@ export function ImportRecordsPreview(props: ImportRecordsPreviewProps): JSX.Elem
           </h2>
           <p className="mt-2 text-sm text-emerald-800">
             {locale === 'zh'
-              ? `当前批次分布：${levelCountText}。请对照原始换算表重点核对以下样本记录。`
-              : `Current batch distribution: ${levelCountText}. Please verify samples against official conversion tables.`}
+              ? `当前批次分布：${levelCountText}。以下为筛选结果按当前顺序的前 8 条样本，请对照原始换算表核对。`
+              : `Current batch distribution: ${levelCountText}. The first 8 filtered records are shown for verification against official conversion tables.`}
           </p>
           <div className="mt-4 overflow-x-auto rounded-xl border border-emerald-100 bg-white">
             <table className="min-w-full text-sm">
@@ -76,7 +77,16 @@ export function ImportRecordsPreview(props: ImportRecordsPreviewProps): JSX.Elem
       )}
 
       {!showOnlyIssues && filteredRecords.length > 0 && (
-        <div className="mt-8 overflow-x-auto rounded-2xl border border-slate-200">
+        <div className="mt-8 rounded-2xl border border-slate-200 bg-white">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 px-4 py-3">
+            <h2 className="font-bold text-slate-900">{locale === 'zh' ? '成绩记录' : 'Score records'}</h2>
+            <p className="text-xs text-slate-500">
+              {locale === 'zh'
+                ? `当前显示 ${Math.min(visibleLimit, filteredRecords.length)} / ${filteredRecords.length} 条`
+                : `Showing ${Math.min(visibleLimit, filteredRecords.length)} of ${filteredRecords.length}`}
+            </p>
+          </div>
+          <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-slate-100 text-slate-700">
               <tr>
@@ -98,7 +108,7 @@ export function ImportRecordsPreview(props: ImportRecordsPreviewProps): JSX.Elem
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.slice(0, 20).map((record) => {
+              {filteredRecords.slice(0, visibleLimit).map((record) => {
                 const { readingRaw, writingRaw, listeningRaw } = getSkillRawScores(record);
                 const yLevel = isYLELevel(record.level);
                 return (
@@ -121,6 +131,18 @@ export function ImportRecordsPreview(props: ImportRecordsPreviewProps): JSX.Elem
               })}
             </tbody>
           </table>
+          </div>
+          {visibleLimit < filteredRecords.length && (
+            <div className="border-t border-slate-200 p-3 text-center">
+              <button
+                type="button"
+                onClick={() => setVisibleLimit((current) => Math.min(current + 20, filteredRecords.length))}
+                className="rounded-lg px-4 py-2 text-sm font-bold text-blue-700 hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {locale === 'zh' ? '再显示 20 条' : 'Show 20 more'}
+              </button>
+            </div>
+          )}
         </div>
       )}
 

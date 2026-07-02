@@ -7,7 +7,7 @@
 项目主链路已可用：导入（覆盖/追加）→ 解析换算 → 结果筛选导出 → 分析页趋势与多日期对比。  
 目前进入“第二阶段增强”，重点是教研分析能力与数据治理能力。
 
-**工程结构（2026-04-18）**：已对导入页、分析页做**仅拆文件、不改行为**的模块化拆分（状态与业务逻辑仍在 `app/page.tsx`、`app/analysis/page.tsx`；展示块迁至 `components/home/*`、`app/analysis/components/*`；纯函数迁至 `lib/importPageUtils.ts`、`lib/analysisPageUtils.ts`；共享类型 `lib/importHomeTypes.ts`）。`valruna-app` 根目录若未初始化 Git，进度以本文件与本地备份 JSON 为准。
+**工程结构（2026-07-02）**：导入首页已重构为教师工作台与四步流程（准备模板、上传文件、检查确认、查看结果）；文件解析后先生成预览，确认前不修改本地成绩。状态与业务逻辑仍在 `app/page.tsx`、`app/analysis/page.tsx`；展示块位于 `components/home/*`、`app/analysis/components/*`；共享类型位于 `lib/importHomeTypes.ts`。`valruna-app` 根目录若未初始化 Git，进度以本文件与本地备份 JSON 为准。
 
 **文案（2026-04-18）**：学生画像「针对性提升建议」与 `/diagnosis` 核心建议已统一为 `lib/analysisPageUtils.ts` 中的 **`buildImprovementTaskCard`**（由 `buildImprovementSuggestion` 调用）；题段补充说明中已标明「答对题数/题段满分」与约 **正确率**，多段建议以空行分隔，便于阅读。判定阈值与技能库匹配逻辑未改。
 
@@ -143,10 +143,10 @@
 
 ## 5) 关键文件索引
 
-- `app/page.tsx`：导入页状态与事件处理（持久化、解析、追加冲突、导出）；UI 块见 `components/home/*`
-- `components/home/*`：导入页展示子组件（上传与模式、冲突预览、筛选卡片、模板/备份/审计区等）
+- `app/page.tsx`：四步导入状态与事件处理（持久化、预览确认、导出）；UI 块见 `components/home/*`
+- `components/home/*`：教师工作台、步骤器、上传、确认预览、结果、筛选及折叠数据管理组件
 - `lib/importPageUtils.ts`：导入页纯函数（CSV、去重合并、展示文案等）
-- `lib/importHomeTypes.ts`：`PersistedDashboardState`、`PendingAppendImport`、`ImportStats` 等与导入持久化相关类型
+- `lib/importHomeTypes.ts`：`PersistedDashboardState`、`PendingImportPreview`、`ImportStep`、`ImportStats` 等导入状态类型
 - `app/analysis/page.tsx`：分析页状态、`useMemo` 与导出 PNG；图表与筛选 UI 见下述 components
 - `app/analysis/components/*`：分析页筛选条、班级总览、学生画像、个人对比等展示块
 - `app/analysis/analysisTypes.ts`：学生画像数据结构 `AnalysisStudentProfileData`

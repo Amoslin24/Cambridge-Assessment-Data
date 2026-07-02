@@ -24,19 +24,23 @@ import {
   matchesIssueFilter,
   type IssueFilterKey,
 } from '@/lib/importIssueUtils';
-import type { ImportStats, PendingAppendImport, PersistedDashboardState } from '@/lib/importHomeTypes';
-import { ImportAppendConflictPanel } from '@/components/home/ImportAppendConflictPanel';
+import type {
+  ImportStats,
+  ImportStep,
+  PendingImportPreview,
+  PersistedDashboardState,
+} from '@/lib/importHomeTypes';
 import { ImportAuditCard } from '@/components/home/ImportAuditCard';
 import { ImportBackupExportCard } from '@/components/home/ImportBackupExportCard';
 import { ImportFiltersCard } from '@/components/home/ImportFiltersCard';
 import { ImportIssueSummaryCard } from '@/components/home/ImportIssueSummaryCard';
 import { ImportIssuesSection } from '@/components/home/ImportIssuesSection';
-import { ImportLoadingBanner } from '@/components/home/ImportLoadingBanner';
 import { ImportRecordsPreview } from '@/components/home/ImportRecordsPreview';
-import { ImportRuntimeStatusCard } from '@/components/home/ImportRuntimeStatusCard';
+import { ImportResultSummary } from '@/components/home/ImportResultSummary';
+import { ImportReviewPanel } from '@/components/home/ImportReviewPanel';
 import { ImportTemplateCard } from '@/components/home/ImportTemplateCard';
-import { ImportTemplateLinks } from '@/components/home/ImportTemplateLinks';
 import { ImportUploadSection } from '@/components/home/ImportUploadSection';
+import { ImportWorkflowStepper } from '@/components/home/ImportWorkflowStepper';
 
 const LOCAL_STORAGE_KEY = 'cambridge-dashboard:parsed-state:v1';
 const UI_LOCALE_STORAGE_KEY = 'cambridge-dashboard:ui-locale:v1';
@@ -57,12 +61,14 @@ export default function Home(): JSX.Element {
   const [showOnlyIssues, setShowOnlyIssues] = useState<boolean>(false);
   const [importMode, setImportMode] = useState<ImportMode>('replace');
   const [lastImportMessage, setLastImportMessage] = useState<string>('');
-  const [pendingAppendImport, setPendingAppendImport] = useState<PendingAppendImport | null>(null);
+  const [activeStep, setActiveStep] = useState<ImportStep>('prepare');
+  const [pendingImport, setPendingImport] = useState<PendingImportPreview | null>(null);
   const [importStats, setImportStats] = useState<ImportStats | null>(null);
   const [showAllConflictRows, setShowAllConflictRows] = useState<boolean>(false);
   const [conflictNameKeyword, setConflictNameKeyword] = useState<string>('');
   const [activeIssueFilter, setActiveIssueFilter] = useState<IssueFilterKey>('ALL');
   const [issueDelta, setIssueDelta] = useState<number | null>(null);
+  const [storageError, setStorageError] = useState<string>('');
 
   function tr(zhText: string, enText: string): string {
     return locale === 'zh' ? zhText : enText;
@@ -97,6 +103,11 @@ export default function Home(): JSX.Element {
       new Set(records.map((record) => record.className).filter((value) => value.length > 0)),
     ).sort();
   }, [records]);
+
+  const classCount = useMemo(
+    (): number => new Set(records.map((record) => record.className).filter((value) => value.length > 0)).size,
+    [records],
+  );
 
   const examDateOptions = useMemo((): string[] => {
     return Array.from(
@@ -255,6 +266,9 @@ export default function Home(): JSX.Element {
       setSavedAt(parsed.savedAt || '');
       setAuditLog(Array.isArray(parsed.auditLog) ? parsed.auditLog : []);
       setIssueDelta(null);
+      if (parsed.records.length > 0 || parsed.issues.length > 0) {
+        setActiveStep('result');
+      }
     } catch {
       // 本地数据损坏时忽略恢复，避免阻塞页面使用。
     } finally {
@@ -267,137 +281,89 @@ export default function Home(): JSX.Element {
       return;
     }
 
-    if (!fileName && records.length === 0 && issues.length === 0 && auditLog.length === 0) {
-      window.localStorage.removeItem(LOCAL_STORAGE_KEY);
-      setSavedAt('');
-      return;
-    }
+    try {
+      if (!fileName && records.length === 0 && issues.length === 0 && auditLog.length === 0) {
+        window.localStorage.removeItem(LOCAL_STORAGE_KEY);
+        setSavedAt('');
+        setStorageError('');
+        return;
+      }
 
-    const now = new Date().toISOString();
-    const payload: PersistedDashboardState = {
-      fileName,
-      records,
-      issues,
-      savedAt: now,
-      auditLog,
-    };
-    window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
-    setSavedAt(now);
-  }, [fileName, records, issues, auditLog, storageReady]);
+      const now = new Date().toISOString();
+      const payload: PersistedDashboardState = {
+        fileName,
+        records,
+        issues,
+        savedAt: now,
+        auditLog,
+      };
+      window.localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(payload));
+      setSavedAt(now);
+      setStorageError('');
+    } catch {
+      setStorageError(
+        locale === 'zh'
+          ? '浏览器本地存储空间不足，最新更改可能未保存。请立即在“数据管理”中导出完整备份。'
+          : 'Browser storage is full and the latest changes may not be saved. Export a full backup from Data management now.',
+      );
+    }
+  }, [fileName, records, issues, auditLog, storageReady, locale]);
 
   function appendAuditEntry(entry: Omit<ImportAuditEntry, 'id'>): void {
     const id = `${entry.importedAt}-${Math.random().toString(16).slice(2)}`;
     setAuditLog((prev) => [{ ...entry, id }, ...prev].slice(0, 50));
   }
 
-  async function handleFileChange(event: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const targetFile = event.target.files?.[0];
-    if (!targetFile) {
-      return;
-    }
-
+  async function handleFileSelected(targetFile: File): Promise<void> {
     setLoading(true);
     setLastImportMessage('');
 
     try {
       const result = await parseCambridgeSpreadsheet(targetFile);
-      const previousIssueCount = issues.length;
       if (importMode === 'replace') {
-        setFileName(targetFile.name);
-        setRecords(result.records);
-        setIssues(result.issues);
-        setActiveIssueFilter('ALL');
-        const deltaMessage = computeIssueDeltaMessage(previousIssueCount, result.issues.length);
-        setLastImportMessage(
-          tr(
-            `覆盖导入完成：有效记录 ${result.records.length} 条，异常 ${result.issues.length} 条。${deltaMessage}`,
-            `Replace import completed: ${result.records.length} valid records, ${result.issues.length} issues. ${deltaMessage}`,
-          ),
-        );
-        setImportStats({
+        setPendingImport({
           mode: 'replace',
+          targetFileName: targetFile.name,
+          incomingRecords: result.records,
+          incomingIssues: result.issues,
+          nextRecords: result.records,
+          nextIssues: result.issues,
           addedCount: result.records.length,
-          replacedCount: 0,
-          issueCount: result.issues.length,
-          totalAfterImport: result.records.length,
-        });
-        appendAuditEntry({
-          importedAt: new Date().toISOString(),
-          fileName: targetFile.name,
-          mode: 'replace',
-          addedCount: result.records.length,
-          replacedCount: 0,
-          issueCount: result.issues.length,
-          totalAfterImport: result.records.length,
+          replacedCount: records.length,
+          existingRecordsCount: records.length,
+          replacedPreviews: [],
         });
       } else {
         const mergeOutcome = mergeRecordsByKey(records, result.records);
         const mergedIssues = [...issues, ...result.issues];
-
-        if (mergeOutcome.replacedCount > 0) {
-          setShowAllConflictRows(false);
-          setConflictNameKeyword('');
-          setPendingAppendImport({
-            targetFileName: targetFile.name,
-            mergedRecords: mergeOutcome.merged,
-            mergedIssues,
-            outcome: mergeOutcome,
-          });
-          setLastImportMessage(
-            tr(
-              `检测到 ${mergeOutcome.replacedCount} 条记录将被覆盖，请先确认后再写入。`,
-              `${mergeOutcome.replacedCount} records will be replaced. Please confirm before applying.`,
-            ),
-          );
-        } else {
-          setFileName(fileName ? `${fileName} + ${targetFile.name}` : targetFile.name);
-          setRecords(mergeOutcome.merged);
-          setIssues(mergedIssues);
-          setActiveIssueFilter('ALL');
-          const deltaMessage = computeIssueDeltaMessage(previousIssueCount, mergedIssues.length);
-          setLastImportMessage(
-            tr(
-              `追加导入完成：新增 ${mergeOutcome.addedCount} 条，覆盖 ${mergeOutcome.replacedCount} 条，当前总计 ${mergeOutcome.merged.length} 条。${deltaMessage}`,
-              `Append import completed: +${mergeOutcome.addedCount}, replaced ${mergeOutcome.replacedCount}, total ${mergeOutcome.merged.length}. ${deltaMessage}`,
-            ),
-          );
-          setImportStats({
-            mode: 'append',
-            addedCount: mergeOutcome.addedCount,
-            replacedCount: mergeOutcome.replacedCount,
-            issueCount: mergedIssues.length,
-            totalAfterImport: mergeOutcome.merged.length,
-          });
-          appendAuditEntry({
-            importedAt: new Date().toISOString(),
-            fileName: targetFile.name,
-            mode: 'append',
-            addedCount: mergeOutcome.addedCount,
-            replacedCount: mergeOutcome.replacedCount,
-            issueCount: mergedIssues.length,
-            totalAfterImport: mergeOutcome.merged.length,
-          });
-        }
+        setPendingImport({
+          mode: 'append',
+          targetFileName: targetFile.name,
+          incomingRecords: result.records,
+          incomingIssues: result.issues,
+          nextRecords: mergeOutcome.merged,
+          nextIssues: mergedIssues,
+          addedCount: mergeOutcome.addedCount,
+          replacedCount: mergeOutcome.replacedCount,
+          existingRecordsCount: records.length,
+          replacedPreviews: mergeOutcome.replacedPreviews,
+        });
       }
+      setShowAllConflictRows(false);
+      setConflictNameKeyword('');
+      setActiveStep('review');
     } catch (error: unknown) {
       const message =
         error instanceof Error && error.message
           ? error.message
           : tr('文件解析失败，请检查文件格式或内容是否完整。', 'Failed to parse file. Please check format and content.');
-      const importFailedIssue = { rowNumber: 0, message };
-      if (importMode === 'replace') {
-        setIssues([importFailedIssue]);
-      } else {
-        setIssues([...issues, importFailedIssue]);
-      }
-      setActiveIssueFilter('ALL');
-      setIssueDelta(null);
+      setPendingImport(null);
+      setActiveStep('upload');
       setLastImportMessage(
-        tr('导入失败：导入前检查未通过或文件解析失败。', 'Import failed: precheck failed or file parsing error.'),
+        tr(`解析失败：${message}。现有成绩没有改变。`, `Parsing failed: ${message}. Existing scores were not changed.`),
       );
     } finally {
       setLoading(false);
-      event.target.value = '';
     }
   }
 
@@ -477,12 +443,13 @@ export default function Home(): JSX.Element {
     setRecords([]);
     setIssues([]);
     setSavedAt('');
-    setPendingAppendImport(null);
+    setPendingImport(null);
     setLastImportMessage('');
     setImportStats(null);
     setAuditLog([]);
     setActiveIssueFilter('ALL');
     setIssueDelta(null);
+    setActiveStep('prepare');
     window.localStorage.removeItem(LOCAL_STORAGE_KEY);
     setLastImportMessage(tr('已清空本地数据。', 'Local data cleared.'));
   }
@@ -495,47 +462,52 @@ export default function Home(): JSX.Element {
     setShowOnlyIssues(false);
   }
 
-  function handleConfirmPendingAppendImport(): void {
-    if (!pendingAppendImport) {
+  function handleConfirmPendingImport(): void {
+    if (!pendingImport) {
       return;
     }
-    setFileName(fileName ? `${fileName} + ${pendingAppendImport.targetFileName}` : pendingAppendImport.targetFileName);
-    setRecords(pendingAppendImport.mergedRecords);
-    setIssues(pendingAppendImport.mergedIssues);
+    const nextFileName = pendingImport.mode === 'append' && fileName
+      ? `${fileName} + ${pendingImport.targetFileName}`
+      : pendingImport.targetFileName;
+    setFileName(nextFileName);
+    setRecords(pendingImport.nextRecords);
+    setIssues(pendingImport.nextIssues);
     setActiveIssueFilter('ALL');
-    const deltaMessage = computeIssueDeltaMessage(issues.length, pendingAppendImport.mergedIssues.length);
+    const deltaMessage = computeIssueDeltaMessage(issues.length, pendingImport.nextIssues.length);
     setLastImportMessage(
       tr(
-        `追加导入完成：新增 ${pendingAppendImport.outcome.addedCount} 条，覆盖 ${pendingAppendImport.outcome.replacedCount} 条，当前总计 ${pendingAppendImport.outcome.merged.length} 条。${deltaMessage}`,
-        `Append import completed: +${pendingAppendImport.outcome.addedCount}, replaced ${pendingAppendImport.outcome.replacedCount}, total ${pendingAppendImport.outcome.merged.length}. ${deltaMessage}`,
+        `导入完成：新增 ${pendingImport.addedCount} 条，覆盖 ${pendingImport.replacedCount} 条，当前总计 ${pendingImport.nextRecords.length} 条。${deltaMessage}`,
+        `Import completed: +${pendingImport.addedCount}, replaced ${pendingImport.replacedCount}, total ${pendingImport.nextRecords.length}. ${deltaMessage}`,
       ),
     );
     setImportStats({
-      mode: 'append',
-      addedCount: pendingAppendImport.outcome.addedCount,
-      replacedCount: pendingAppendImport.outcome.replacedCount,
-      issueCount: pendingAppendImport.mergedIssues.length,
-      totalAfterImport: pendingAppendImport.outcome.merged.length,
+      mode: pendingImport.mode,
+      addedCount: pendingImport.addedCount,
+      replacedCount: pendingImport.replacedCount,
+      issueCount: pendingImport.nextIssues.length,
+      totalAfterImport: pendingImport.nextRecords.length,
     });
     appendAuditEntry({
       importedAt: new Date().toISOString(),
-      fileName: pendingAppendImport.targetFileName,
-      mode: 'append',
-      addedCount: pendingAppendImport.outcome.addedCount,
-      replacedCount: pendingAppendImport.outcome.replacedCount,
-      issueCount: pendingAppendImport.mergedIssues.length,
-      totalAfterImport: pendingAppendImport.outcome.merged.length,
+      fileName: pendingImport.targetFileName,
+      mode: pendingImport.mode,
+      addedCount: pendingImport.addedCount,
+      replacedCount: pendingImport.replacedCount,
+      issueCount: pendingImport.nextIssues.length,
+      totalAfterImport: pendingImport.nextRecords.length,
     });
-    setPendingAppendImport(null);
+    setPendingImport(null);
     setShowAllConflictRows(false);
     setConflictNameKeyword('');
+    setActiveStep('result');
   }
 
-  function handleCancelPendingAppendImport(): void {
-    setPendingAppendImport(null);
-    setLastImportMessage(tr('已取消本次追加导入。', 'Append import cancelled.'));
+  function handleCancelPendingImport(): void {
+    setPendingImport(null);
+    setLastImportMessage(tr('已取消本次导入，现有成绩没有改变。', 'Import cancelled. Existing scores were not changed.'));
     setShowAllConflictRows(false);
     setConflictNameKeyword('');
+    setActiveStep('upload');
   }
 
   function handleDownloadAuditLog(): void {
@@ -599,10 +571,11 @@ export default function Home(): JSX.Element {
       setIssues(parsed.issues);
       setSavedAt(parsed.savedAt || '');
       setAuditLog(Array.isArray(parsed.auditLog) ? parsed.auditLog : []);
-      setPendingAppendImport(null);
+      setPendingImport(null);
       setImportStats(null);
       setActiveIssueFilter('ALL');
       setIssueDelta(null);
+      setActiveStep(parsed.records.length > 0 || parsed.issues.length > 0 ? 'result' : 'prepare');
       setLastImportMessage(
         tr(
           `已从备份文件恢复本地状态（记录 ${parsed.records.length} 条，异常 ${parsed.issues.length} 条）。`,
@@ -634,169 +607,217 @@ export default function Home(): JSX.Element {
   }
 
   const conflictPreviews = useMemo((): ReplacedRecordPreview[] => {
-    if (!pendingAppendImport) {
+    if (!pendingImport) {
       return [];
     }
     const keyword = conflictNameKeyword.trim().toLowerCase();
-    const base = pendingAppendImport.outcome.replacedPreviews;
+    const base = pendingImport.replacedPreviews;
     if (!keyword) {
       return base;
     }
     return base.filter((item) => item.incoming.name.toLowerCase().includes(keyword));
-  }, [pendingAppendImport, conflictNameKeyword]);
+  }, [pendingImport, conflictNameKeyword]);
 
   return (
-    <main className="min-h-screen bg-slate-50 py-12 px-6">
-      <section className="max-w-6xl mx-auto">
-        <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-8 md:p-10">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-              {tr('Cambridge 成绩数据导入中心', 'Cambridge Score Import Center')}
-            </h1>
-            <div className="inline-flex rounded-lg border border-slate-300 bg-white p-1 text-sm">
-              <button
-                type="button"
-                onClick={() => setLocale('zh')}
-                className={`rounded-md px-3 py-1 ${locale === 'zh' ? 'bg-slate-900 text-white' : 'text-slate-700'}`}
-              >
-                中文
-              </button>
-              <button
-                type="button"
-                onClick={() => setLocale('en')}
-                className={`rounded-md px-3 py-1 ${locale === 'en' ? 'bg-slate-900 text-white' : 'text-slate-700'}`}
-              >
-                English
-              </button>
+    <main className="min-h-screen bg-slate-100 text-slate-900">
+      <div className="mx-auto grid max-w-[1480px] gap-6 px-4 py-4 sm:px-6 sm:py-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:px-8">
+        <aside className="hidden lg:block">
+          <div className="sticky top-6 rounded-3xl bg-slate-950 p-5 text-white shadow-xl">
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-5">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-600 text-lg font-black">C</div>
+              <div>
+                <p className="font-black">Cambridge</p>
+                <p className="text-xs text-slate-400">{tr('教师工作台', 'Teacher workspace')}</p>
+              </div>
+            </div>
+            <nav aria-label={tr('工作台导航', 'Workspace navigation')} className="mt-5 space-y-2">
+              <span aria-current="page" className="flex items-center gap-3 rounded-xl bg-white px-3 py-3 text-sm font-bold text-slate-950">
+                <span aria-hidden="true">↑</span>{tr('成绩导入', 'Score import')}
+              </span>
+              <Link href="/analysis" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <span aria-hidden="true">▥</span>{tr('数据分析', 'Data analysis')}
+              </Link>
+              <Link href="/ket" className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-slate-800 hover:text-white focus:outline-none focus:ring-2 focus:ring-blue-400">
+                <span aria-hidden="true">A</span>{tr('KET 练习', 'KET practice')}
+              </Link>
+            </nav>
+            <div className="mt-8 rounded-2xl border border-slate-800 bg-slate-900 p-4 text-xs leading-5 text-slate-400">
+              {tr('成绩默认仅保存在当前浏览器。请定期从数据管理中导出备份。', 'Scores stay in this browser by default. Export backups regularly from Data management.')}
             </div>
           </div>
-          <p className="mt-3 text-slate-600 leading-relaxed">
-            {tr(
-              '支持 CSV / Excel（.xlsx / .xls）文件上传，系统将自动执行级别识别、原子分项解析与换算结果生成。',
-              'Supports CSV/Excel (.xlsx/.xls) upload with automatic level detection, atomic part parsing, and score conversion.',
-            )}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Link
-              href="/analysis"
-              className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:border-blue-700 hover:text-blue-700 transition-colors"
-            >
-              {tr('进入数据分析页', 'Go to analysis')}
-            </Link>
-            <Link
-              href="/ket"
-              className="inline-flex items-center justify-center px-4 py-2 rounded-lg border border-blue-200 bg-blue-50 text-blue-800 hover:border-blue-700 hover:bg-blue-100 transition-colors"
-            >
-              {tr('KET 备考练习', 'KET exam practice')}
-            </Link>
+        </aside>
+
+        <section className="min-w-0">
+          <header className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm md:p-7">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Cambridge Dashboard</p>
+                <h1 className="mt-2 text-2xl font-black tracking-tight text-slate-950 md:text-3xl">
+                  {tr('成绩数据导入', 'Score data import')}
+                </h1>
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-600">
+                  {tr('按步骤准备、检查并保存成绩；确认前不会修改浏览器中的现有数据。', 'Prepare, review, and save scores step by step. Existing browser data is unchanged until you confirm.')}
+                </p>
+              </div>
+              <div className="inline-flex w-fit rounded-xl border border-slate-300 bg-slate-50 p-1 text-sm">
+                <button type="button" aria-pressed={locale === 'zh'} onClick={() => setLocale('zh')} className={`rounded-lg px-3 py-2 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${locale === 'zh' ? 'bg-slate-900 text-white' : 'text-slate-600'}`}>中文</button>
+                <button type="button" aria-pressed={locale === 'en'} onClick={() => setLocale('en')} className={`rounded-lg px-3 py-2 font-semibold focus:outline-none focus:ring-2 focus:ring-blue-500 ${locale === 'en' ? 'bg-slate-900 text-white' : 'text-slate-600'}`}>English</button>
+              </div>
+            </div>
+            <nav aria-label={tr('移动端工作台导航', 'Mobile workspace navigation')} className="mt-5 flex gap-2 overflow-x-auto border-t border-slate-100 pt-4 lg:hidden">
+              <span aria-current="page" className="whitespace-nowrap rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">{tr('成绩导入', 'Import')}</span>
+              <Link href="/analysis" className="whitespace-nowrap rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">{tr('数据分析', 'Analysis')}</Link>
+              <Link href="/ket" className="whitespace-nowrap rounded-lg bg-slate-100 px-3 py-2 text-xs font-bold text-slate-700">{tr('KET 练习', 'KET practice')}</Link>
+            </nav>
+          </header>
+
+          <div className="mt-5">
+            <ImportWorkflowStepper
+              locale={locale}
+              activeStep={activeStep}
+              pendingReady={pendingImport !== null}
+              resultReady={records.length > 0 || issues.length > 0}
+              onStepChange={setActiveStep}
+            />
           </div>
 
-          <div className="mt-8 space-y-4">
-            <ImportRuntimeStatusCard
-              locale={locale}
-              fileName={fileName}
-              recordsCount={records.length}
-              issuesCount={issues.length}
-              filteredIssuesCount={filteredIssues.length}
-              hasActiveIssueFilter={activeIssueFilter !== 'ALL'}
-            />
-            <ImportUploadSection
-              locale={locale}
-              summaryText={summaryText}
-              onFileChange={handleFileChange}
-              importMode={importMode}
-              onImportModeChange={setImportMode}
-              lastImportMessage={lastImportMessage}
-              importStats={importStats}
-            />
-            {pendingAppendImport && (
-              <ImportAppendConflictPanel
-                pending={pendingAppendImport}
+          {storageError && (
+            <div role="alert" className="mt-5 rounded-2xl border border-rose-300 bg-rose-50 px-5 py-4 text-sm font-semibold text-rose-900">
+              {storageError}
+            </div>
+          )}
+          {lastImportMessage && activeStep === 'prepare' && (
+            <div role="status" className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 px-5 py-4 text-sm font-semibold text-blue-900">
+              {lastImportMessage}
+            </div>
+          )}
+
+          <div className="mt-5">
+            {activeStep === 'prepare' && (
+              <ImportTemplateCard locale={locale} onDownloadEmptyTemplate={handleDownloadEmptyTemplate} onContinue={() => setActiveStep('upload')} />
+            )}
+
+            {activeStep === 'upload' && (
+              <ImportUploadSection
+                locale={locale}
+                summaryText={summaryText}
+                onFileSelected={handleFileSelected}
+                importMode={importMode}
+                onImportModeChange={setImportMode}
+                lastImportMessage={lastImportMessage}
+                loading={loading}
+                onBack={() => setActiveStep('prepare')}
+              />
+            )}
+
+            {activeStep === 'review' && pendingImport && (
+              <ImportReviewPanel
+                locale={locale}
+                pending={pendingImport}
                 conflictPreviews={conflictPreviews}
                 conflictNameKeyword={conflictNameKeyword}
                 onConflictNameKeywordChange={setConflictNameKeyword}
                 showAllConflictRows={showAllConflictRows}
                 onShowAllConflictRowsChange={setShowAllConflictRows}
-                onConfirm={handleConfirmPendingAppendImport}
-                onCancel={handleCancelPendingAppendImport}
+                onConfirm={handleConfirmPendingImport}
+                onCancel={handleCancelPendingImport}
               />
             )}
-            <ImportFiltersCard
-              locale={locale}
-              savedAtText={savedAtText}
-              levelOptions={levelOptions}
-              selectedLevel={selectedLevel}
-              onLevelChange={setSelectedLevel}
-              classOptions={classOptions}
-              selectedClass={selectedClass}
-              onClassChange={setSelectedClass}
-              examDateOptions={examDateOptions}
-              selectedExamDate={selectedExamDate}
-              onExamDateChange={setSelectedExamDate}
-              nameKeyword={nameKeyword}
-              onNameKeywordChange={setNameKeyword}
-              showOnlyIssues={showOnlyIssues}
-              onShowOnlyIssuesChange={setShowOnlyIssues}
-              onResetFilters={handleResetFilters}
-              filteredSummaryText={filteredSummaryText}
-            />
-            <ImportTemplateCard locale={locale} onDownloadEmptyTemplate={handleDownloadEmptyTemplate} />
-            <ImportBackupExportCard
-              locale={locale}
-              recordsCount={records.length}
-              issuesCount={issues.length}
-              auditLogCount={auditLog.length}
-              onDownloadParsedRecords={handleDownloadParsedRecords}
-              onDownloadIssues={handleDownloadIssues}
-              onClearLocalData={handleClearLocalData}
-              onDownloadFullBackup={handleDownloadFullBackup}
-              onRestoreFromBackup={handleRestoreFromBackup}
-            />
-            <ImportAuditCard
-              locale={locale}
-              auditLog={auditLog}
-              onDownloadAuditLog={handleDownloadAuditLog}
-              onClearAuditLog={handleClearAuditLog}
-            />
+
+            {activeStep === 'result' && (records.length > 0 || issues.length > 0) && (
+              <div className="space-y-5">
+                <ImportResultSummary
+                  locale={locale}
+                  recordsCount={records.length}
+                  classCount={classCount}
+                  issuesCount={issues.length}
+                  fileName={fileName}
+                  savedAtText={savedAtText}
+                  importStats={importStats}
+                  onImportAnother={() => setActiveStep('upload')}
+                />
+
+                {lastImportMessage && (
+                  <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">{lastImportMessage}</p>
+                )}
+
+                {records.length > 0 && (
+                  <ImportFiltersCard
+                    locale={locale}
+                    savedAtText=""
+                    levelOptions={levelOptions}
+                    selectedLevel={selectedLevel}
+                    onLevelChange={setSelectedLevel}
+                    classOptions={classOptions}
+                    selectedClass={selectedClass}
+                    onClassChange={setSelectedClass}
+                    examDateOptions={examDateOptions}
+                    selectedExamDate={selectedExamDate}
+                    onExamDateChange={setSelectedExamDate}
+                    nameKeyword={nameKeyword}
+                    onNameKeywordChange={setNameKeyword}
+                    showOnlyIssues={showOnlyIssues}
+                    onShowOnlyIssuesChange={setShowOnlyIssues}
+                    onResetFilters={handleResetFilters}
+                    filteredSummaryText={filteredSummaryText}
+                  />
+                )}
+
+                {issues.length > 0 && (
+                  <ImportIssueSummaryCard
+                    locale={locale}
+                    overLimitReadingCount={issueSummary.overLimitReadingCount}
+                    overLimitListeningCount={issueSummary.overLimitListeningCount}
+                    overLimitWritingCount={issueSummary.overLimitWritingCount}
+                    nonNumericCount={issueSummary.nonNumericCount}
+                    negativeCount={issueSummary.negativeCount}
+                    missingFieldCount={issueSummary.missingFieldCount}
+                    duplicateRecordCount={issueSummary.duplicateRecordCount}
+                    affectedRowCount={issueSummary.affectedRowCount}
+                    issueDeltaText={issueDeltaText}
+                    activeFilter={activeIssueFilter}
+                    onSelectFilter={setActiveIssueFilter}
+                  />
+                )}
+                <ImportIssuesSection
+                  locale={locale}
+                  issues={issues}
+                  filteredIssues={filteredIssues}
+                  activeIssueFilterLabel={activeIssueFilterLabel}
+                  showOnlyIssues={showOnlyIssues}
+                  onCopyIssues={handleCopyIssues}
+                  onExportFilteredIssues={handleDownloadFilteredIssues}
+                />
+                <ImportRecordsPreview locale={locale} showOnlyIssues={showOnlyIssues} filteredRecords={filteredRecords} recordsCount={records.length} levelCountText={levelCountText} />
+              </div>
+            )}
           </div>
-          <ImportTemplateLinks locale={locale} />
-          <ImportLoadingBanner loading={loading} locale={locale} />
-          {issues.length > 0 && (
-            <div className="mt-8">
-              <ImportIssueSummaryCard
+
+          <details className="group mt-5 rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-4 rounded-2xl px-5 py-4 font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <span>
+                <span className="block">{tr('数据管理', 'Data management')}</span>
+                <span className="mt-1 block text-xs font-normal text-slate-500">{tr('备份、恢复、导出和审计记录', 'Backup, restore, exports, and audit history')}</span>
+              </span>
+              <span aria-hidden="true" className="text-xl text-slate-400 transition-transform group-open:rotate-45">＋</span>
+            </summary>
+            <div className="space-y-4 border-t border-slate-200 bg-slate-50 p-4 md:p-5">
+              <ImportBackupExportCard
                 locale={locale}
-                overLimitReadingCount={issueSummary.overLimitReadingCount}
-                overLimitListeningCount={issueSummary.overLimitListeningCount}
-                overLimitWritingCount={issueSummary.overLimitWritingCount}
-                nonNumericCount={issueSummary.nonNumericCount}
-                negativeCount={issueSummary.negativeCount}
-                missingFieldCount={issueSummary.missingFieldCount}
-                duplicateRecordCount={issueSummary.duplicateRecordCount}
-                affectedRowCount={issueSummary.affectedRowCount}
-                issueDeltaText={issueDeltaText}
-                activeFilter={activeIssueFilter}
-                onSelectFilter={setActiveIssueFilter}
+                recordsCount={records.length}
+                issuesCount={issues.length}
+                auditLogCount={auditLog.length}
+                onDownloadParsedRecords={handleDownloadParsedRecords}
+                onDownloadIssues={handleDownloadIssues}
+                onClearLocalData={handleClearLocalData}
+                onDownloadFullBackup={handleDownloadFullBackup}
+                onRestoreFromBackup={handleRestoreFromBackup}
               />
+              <ImportAuditCard locale={locale} auditLog={auditLog} onDownloadAuditLog={handleDownloadAuditLog} onClearAuditLog={handleClearAuditLog} />
             </div>
-          )}
-          <ImportIssuesSection
-            locale={locale}
-            issues={issues}
-            filteredIssues={filteredIssues}
-            activeIssueFilterLabel={activeIssueFilterLabel}
-            showOnlyIssues={showOnlyIssues}
-            onCopyIssues={handleCopyIssues}
-            onExportFilteredIssues={handleDownloadFilteredIssues}
-          />
-          <ImportRecordsPreview
-            locale={locale}
-            showOnlyIssues={showOnlyIssues}
-            filteredRecords={filteredRecords}
-            recordsCount={records.length}
-            levelCountText={levelCountText}
-          />
-        </div>
-      </section>
+          </details>
+        </section>
+      </div>
     </main>
   );
 }

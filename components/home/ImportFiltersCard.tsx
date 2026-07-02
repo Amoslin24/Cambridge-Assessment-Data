@@ -51,48 +51,31 @@ export function ImportFiltersCard(props: ImportFiltersCardProps): JSX.Element {
           {locale === 'zh' ? '数据筛选' : 'Filters'}
         </p>
         <div className="mt-3 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-          <select
-            value={selectedLevel}
-            onChange={(event) => onLevelChange(event.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-          >
-            <option value="ALL">{locale === 'zh' ? '全部级别' : 'All levels'}</option>
-            {levelOptions.map((level) => (
-              <option key={level} value={level}>
-                {level}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedClass}
-            onChange={(event) => onClassChange(event.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-          >
-            <option value="ALL">{locale === 'zh' ? '全部班级' : 'All classes'}</option>
-            {classOptions.map((className) => (
-              <option key={className} value={className}>
-                {className}
-              </option>
-            ))}
-          </select>
-          <select
-            value={selectedExamDate}
-            onChange={(event) => onExamDateChange(event.target.value)}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-          >
-            <option value="ALL">{locale === 'zh' ? '全部日期' : 'All dates'}</option>
-            {examDateOptions.map((examDate) => (
-              <option key={examDate} value={examDate}>
-                {examDate}
-              </option>
-            ))}
-          </select>
-          <input
-            value={nameKeyword}
-            onChange={(event) => onNameKeywordChange(event.target.value)}
-            placeholder={locale === 'zh' ? '按姓名关键词筛选' : 'Filter by name keyword'}
-            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700"
-          />
+          <label className="text-xs font-semibold text-slate-600">
+            <span className="mb-1 block">{locale === 'zh' ? '考试级别' : 'Exam level'}</span>
+            <select value={selectedLevel} onChange={(event) => onLevelChange(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+              <option value="ALL">{locale === 'zh' ? '全部级别' : 'All levels'}</option>
+              {levelOptions.map((level) => <option key={level} value={level}>{level}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-slate-600">
+            <span className="mb-1 block">{locale === 'zh' ? '班级' : 'Class'}</span>
+            <select value={selectedClass} onChange={(event) => onClassChange(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+              <option value="ALL">{locale === 'zh' ? '全部班级' : 'All classes'}</option>
+              {classOptions.map((className) => <option key={className} value={className}>{className}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-slate-600">
+            <span className="mb-1 block">{locale === 'zh' ? '考试日期' : 'Exam date'}</span>
+            <select value={selectedExamDate} onChange={(event) => onExamDateChange(event.target.value)} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700">
+              <option value="ALL">{locale === 'zh' ? '全部日期' : 'All dates'}</option>
+              {examDateOptions.map((examDate) => <option key={examDate} value={examDate}>{examDate}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-slate-600">
+            <span className="mb-1 block">{locale === 'zh' ? '学生姓名' : 'Student name'}</span>
+            <input value={nameKeyword} onChange={(event) => onNameKeywordChange(event.target.value)} placeholder={locale === 'zh' ? '输入姓名关键词' : 'Enter a name'} className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700" />
+          </label>
           <div className="flex items-center justify-between gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2">
             <label className="flex items-center gap-2 text-sm text-slate-700">
               <input

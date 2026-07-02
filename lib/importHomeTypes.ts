@@ -1,5 +1,7 @@
 import type { CambridgeExamRecord, ParseIssue } from '@/lib/cambridgeEngine';
-import type { ImportAuditEntry, ImportMode, MergeOutcome } from '@/lib/importPageUtils';
+import type { ImportAuditEntry, ImportMode, ReplacedRecordPreview } from '@/lib/importPageUtils';
+
+export type ImportStep = 'prepare' | 'upload' | 'review' | 'result';
 
 export interface PersistedDashboardState {
   fileName: string;
@@ -9,11 +11,17 @@ export interface PersistedDashboardState {
   auditLog?: ImportAuditEntry[];
 }
 
-export interface PendingAppendImport {
+export interface PendingImportPreview {
+  mode: ImportMode;
   targetFileName: string;
-  mergedRecords: CambridgeExamRecord[];
-  mergedIssues: ParseIssue[];
-  outcome: MergeOutcome;
+  incomingRecords: CambridgeExamRecord[];
+  incomingIssues: ParseIssue[];
+  nextRecords: CambridgeExamRecord[];
+  nextIssues: ParseIssue[];
+  addedCount: number;
+  replacedCount: number;
+  existingRecordsCount: number;
+  replacedPreviews: ReplacedRecordPreview[];
 }
 
 export interface ImportStats {
